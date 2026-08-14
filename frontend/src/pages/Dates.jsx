@@ -5,107 +5,112 @@ import { db } from '../firebase';
 import DateLog from './DateLog';
 import './Dates.css';
 
-const defaultDateIdeas = [
-  // 🚆 Transit & Mid-Point Meetups (To split the 1-hour distance)
-  "Meet exactly halfway at a local station just to share a cutting chai",
-  "Share a single window seat on the local train going nowhere in particular",
-  "Find a cafe halfway between our houses for a quick 1-hour meetup",
-  "Meet at Dadar or Andheri station just to eat Vada Pav and leave",
-  "Take an AC BEST bus ride from start to finish just to talk in the AC",
-  "Quick McDonald's soft-serve date at a midpoint",
-  "Commute together for part of the journey and share earphones",
-  "Meet for 20 minutes just to hand over a handwritten letter or hoodie",
-  "Wait for each other outside the exam center",
-  "Share an umbrella walk to the station during the Mumbai monsoons",
+const dateIdeas = [
+  // 📍 Midpoint Meetups (Bandra, Andheri, Juhu - Best for splitting the travel)
+  "Bandra Hill Road thrift shopping followed by lunch at Candies",
+  "Walk at Juhu Beach and getting street food at the Juhu Chowpatty stalls",
+  "Catch a weekend afternoon movie at Citi Mall, Andheri",
+  "Cafe hopping in Bandra starting at a cute bakery",
+  "Arcade showdown at Timezone or Smaaash in Andheri/Lower Parel",
+  "Take a walk at Carter Road promenade and grab shawarmas",
+  "Try the momo stalls at Lokhandwala market, Andheri",
+  "Explore Jio World Drive (BKC) just for window shopping and a fancy coffee",
+  "Sunday brunch at a pretty aesthetic cafe in Bandra",
+  "Go bowling at an arcade and loser buys the dessert afterwards",
+  "Try a completely new cuisine (like Korean or Japanese) in Andheri",
+  "Book a 1-hour badminton slot at a midpoint turf and grab juice after",
+  "Find a cat or dog cafe in the suburbs and play with pets for 2 hours",
+  "Get tickets to a weekend afternoon stand-up comedy show in Bandra",
+  "Go to a board game cafe in Juhu and play high-stakes games",
 
-  // 💻 Virtual Dates (When 2 hours of travel is too much)
-  "Discord movie night with screen share",
+  // 📍 South Bombay Dates (She takes the fast train to you)
+  "Sunset sitting at Marine Drive followed by pizza at Churchgate",
+  "Walk around Kala Ghoda and take aesthetic photos of each other",
+  "Explore the CSMVS Museum for 2 hours and get ice cream at K Rustoms",
+  "Sunday morning breakfast at Kyani & Co. or a classic Irani Cafe",
+  "Window shopping for tailored clothes or dresses at Palladium/Phoenix Mall",
+  "Take the afternoon ferry from Gateway of India (quick 1-hour round trip)",
+  "Walk around Horniman Circle and get coffee at a quiet Fort cafe",
+  "Colaba Causeway street shopping followed by lunch at Leopold Cafe",
+  "Book tickets for an afternoon play or show at NCPA",
+  "Find the best street sandwiches near Charni Road/Marine Lines",
+  "Walk through Taraporewala Aquarium (if open) or just chill at Girgaon Chowpatty",
+  "Go on a SoBo dessert crawl (waffles, ice cream, pastries)",
+  "Visit an art gallery in Kala Ghoda like Jehangir Art Gallery",
+  "Have a 'tourist in our own city' day walking around South Bombay architecture",
+  "Get matching aesthetic sunglasses at a Colaba street stall",
+
+  // 📍 Borivali / North Mumbai Dates (You travel to her area)
+  "Early morning cycling at Sanjay Gandhi National Park (SGNP)",
+  "Spend the afternoon at Inorbit or Infinity Mall Malad (Food court + Arcade)",
+  "Food walk through IC Colony in Borivali",
+  "Take the ferry to Gorai Beach for a quick afternoon sunset trip",
+  "Go to Snow World or a trampoline park in the northern suburbs",
+  "Explore the cafes in Mindspace, Malad",
+  "Catch a movie at a theatre near her so she doesn't have to travel",
+  "Try the best street dosas outside Borivali West station",
+  "Find a rooftop cafe in Borivali/Kandivali for a late afternoon lunch",
+  "Walk around a quiet park in her neighborhood with iced coffees",
+  "Go plant shopping at a local nursery",
+  "Find a local flea market or pop-up exhibition in the suburbs",
+
+  // 🍕 4-Hour Food-Focused Outings (Meals that take time)
+  "Go to Barbeque Nation or Global Fusion and see who can eat the most",
+  "DIY dessert date: Go to a place where we can build our own ice cream sundaes",
+  "The 3-Course challenge: App at one place, Main at another, Dessert at a third",
+  "Food critic date: Try a new street food stall and rate it out of 10",
+  "Blind taste test: Order for each other at a restaurant without telling",
+  "Find the most aesthetic cafe purely for Instagram photos and good drinks",
+  "Go to a 5-star hotel coffee shop just to split one expensive dessert",
+  "Find the best authentic Vada Pav spot on the Western line",
+  "Try a heavy, authentic unlimited Thali place",
+  "Buy random snacks from a supermarket and have an indoor picnic",
+
+  // 🎡 4-Hour Activities & Experiences
+  "Go to a pottery-making workshop on a Saturday afternoon",
+  "Paint and sip (canvas painting at a cafe/workshop)",
+  "Try an Escape Room and see if we can break out in 60 minutes",
+  "Take a 1-day weekend workshop (baking, resin art, photography)",
+  "Go to a photo booth and get physical strip photos taken",
+  "Create a personalized fragrance for each other at a perfume workshop",
+  "Visit a local animal shelter and volunteer for a few hours",
+  "Go to a gaming lounge and play PS5/PC games side-by-side",
+  "Have a 'no phones allowed' 4-hour date",
+  "Pick out outfits for each other at a mall and try them on (without buying)",
+
+  // 💻 Virtual (For the weekends we just can't meet)
+  "Discord movie night with screen share and snacks at home",
   "Stream me playing GTA V or RDR2 while we talk on Discord",
   "Watch the Marvel's Spider-Man story cutscenes together like a movie on stream",
   "Order Zomato to each other's houses and eat together on FaceTime",
-  "Fall asleep on a voice call together",
-  "Virtual Codeforces or LeetCode race on Google Meet",
-  "UI/UX critique date: Roast popular apps together on a video call",
-  "Build our tech startup idea on a shared Notion page while on call",
   "Play online chess, Skribbl.io, or a co-op web game",
-  "Send each other 3 random Pinterest memes that sum up our day",
   "Do an online couples' compatibility or personality test together",
-  "Make a collaborative Spotify playlist while on a call",
-  "Late-night WhatsApp debate about a completely ridiculous hypothetical scenario",
+  "Make a collaborative Spotify playlist for our 3rd year together",
   "Watch a stand-up comedy special via WatchParty",
-  "Video call while I meal-prep my high-protein food and you study",
-
-  // ☀️ Daytime & Curfew-Friendly Dates
-  "Afternoon cinema show so we are both home by 7 PM",
-  "Sunday morning breakfast at a classic Irani cafe (Bun Maska and Chai)",
-  "Morning walk at Marine Drive before the sun gets too hot",
-  "Daytime thrift shopping at Bandra Hill Road or Colaba Causeway",
-  "Afternoon bowling at Smaaash or Timezone",
-  "Ferry ride from Gateway of India (back before sunset)",
-  "Explore Kala Ghoda cafes for a late Sunday brunch",
-  "Go to a cat or dog cafe for a couple of hours in the afternoon",
-  "Window shopping for aesthetic clothes at a luxury mall",
-  "Bunk one college lecture just to grab breakfast nearby",
-
-  // 🏏 Active & Outdoors (Daytime)
-  "Sunday morning badminton at Hotfut Monte South",
-  "Go to the local cricket nets and let her try batting",
-  "Challenge each other to a plank contest on video call (loser Buys Swiggy)",
-  "Early morning trek to a nearby fort (Vasai or Karnala)",
-  "Day trip to Lonavala for Maggi (strictly returning before dark)",
-  "Rent bicycles at SGNP (Sanjay Gandhi National Park) early in the morning",
-  "Attend a live sports match or local cricket tournament during the day",
-  "Walk along Juhu beach and get Bhutta (roasted corn)",
-  "Teach her a basic calisthenics move at a local park",
-  "Step-count challenge: Whoever walks more in a day wins a treat",
-
-  // ☕ Cafes, Food & Sneaky Hangouts
-  "Co-working cafe session: I code my MERN app, you do your work",
-  "Go on a momo-tasting hunt around the city",
-  "Find the best Shawarma spot near college",
-  "Try a completely new cuisine (like Korean or Lebanese) for lunch",
-  "Go to a buffet and see who can eat the most plates",
-  "Drink tapri chai while it rains heavily outside",
-  "Make Maggi together on the rare day one of us has an empty house for 2 hours",
-  "Get Frankie/Rolls and eat them at a local park bench",
-  "Try a fancy dessert parlor for a sugar rush afternoon",
-  "Sit at a Starbucks for 3 hours just talking, buying only one coffee",
-
-  // 🎨 Creative, Cheap & Low-key
-  "Take a phone and do a photoshoot at Fort/Horniman Circle",
-  "Plan our dream post-graduation trip on Google Maps",
-  "Play 20 questions on the train ride home",
-  "Go to Crossword/bookstore and pick a book for each other",
-  "Write letters to our future selves to open next year",
-  "Recreate our first date exactly how it happened",
-  "Pick out a new signature cologne/perfume for each other at a mall tester section",
-  "Browse tailored suits/dresses online and rate each other's choices",
-  "Go to an arcade (Timezone/Snow World) for some mindless fun",
-  "Do a blindfolded taste test with snacks at a mall food court",
-
-  // 🚀 Quick & Spontaneous
-  "Surprise 'I missed you' visit to her area just for 15 minutes",
-  "Meet up during a college fest season where parents know we'll be late",
-  "Go grocery shopping together for our moms just to have an excuse to hang out",
-  "Buy matching cheap phone covers at a street market",
-  "Help her with an assignment while on a voice call",
-  "Give each other honest style/fashion advice for upcoming family weddings",
-  "Try out an escape room in the afternoon",
-  "Map out all the cafes in Mumbai we want to visit in an Excel sheet",
-  "Buy a cheap disposable camera and use it up in one day",
-  "Write down 10 things we love about each other and read them on the train",
-
-  // 🕰️ Extra Ideas for when the stars align
-  "Plan an itinerary for a trip we'll take when we finally get our own places",
-  "Go to a pottery or art class that runs during the day",
-  "Visit the exact place we first met",
-  "Discuss our 5-year goals at a quiet cafe",
-  "Tell each other a secret we haven't shared yet over a private call",
-  "Scroll through our 2 years of photos together at a cafe corner",
-  "Share an ice cream at Marine Drive right as the sun sets",
-  "Play 3 rounds of online tic-tac-toe when bored in separate lectures",
+  "Plan our dream post-graduation trip on Google Maps while on call",
   "Send each other a random song to listen to at the exact same time",
-  "Just sit in silence and enjoy each other's presence after a long week of college"
+
+  // 🚀 Fun & Spontaneous 4-Hour Blocks
+  "Take the local train to a random station we've never been to and explore",
+  "Write letters to our future selves at a cafe to open next year",
+  "Recreate our first date exactly how it happened",
+  "Go to Crossword/bookstore, split up, and pick a book for each other",
+  "Discuss our 5-year goals over a heavy lunch",
+  "Scroll through our 2 years of photos together at a cafe corner",
+  "Buy a cheap disposable camera/film app and use it up in one afternoon",
+  "Write down 10 things we love about each other and read them on the train ride home",
+  "Map out all the cafes in Mumbai we want to visit in an Excel sheet",
+  "Give each other honest style/fashion advice for upcoming family weddings",
+  "Try a completely new hairstyle idea or grooming routine consultation for me",
+  "Play 20 questions on the train ride home together",
+  "Go to a luxury car showroom just to look at the cars and pretend we are buying",
+  "Find a local carnival or mela happening in the city",
+  "Buy cheap matching phone covers at a street market",
+  "Sit in a park and rank our top 5 memories from the last 2 years",
+  "Exchange physical anniversary gifts at a quiet, hidden cafe",
+  "Share a single umbrella during a heavy Mumbai monsoon walk",
+  "Take a BEST double-decker bus ride (if we can find one) on the front seat",
+  "Just sit in silence, holding hands, enjoying each other's presence after a long week"
 ];
 
 const Dates = () => {
@@ -174,7 +179,7 @@ const Dates = () => {
             <p style={{ fontSize: '0.9rem', color: 'var(--text-blush)', marginBottom: '12px', textAlign: 'left' }}>
               One idea per line. (Syncs to cloud)
             </p>
-            <textarea 
+            <textarea
               className="reasons-textarea"
               value={editedText}
               onChange={(e) => setEditedText(e.target.value)}
