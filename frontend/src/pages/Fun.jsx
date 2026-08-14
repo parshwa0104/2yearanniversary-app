@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, X, Edit2, Check, Lock } from 'lucide-react';
 import { doc, onSnapshot, setDoc, collection, addDoc, updateDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -12,6 +13,7 @@ const defaultEnvelopes = [
 ];
 
 const Fun = () => {
+  const navigate = useNavigate();
   const [envelopes, setEnvelopes] = useState([]);
   const [selectedEnvelope, setSelectedEnvelope] = useState(null);
   const [isEditingEnvelope, setIsEditingEnvelope] = useState(false);
@@ -133,6 +135,21 @@ const Fun = () => {
   return (
     <div className="page-container fun-page">
       
+      {/* Mini Game Section */}
+      <div className="editorial-section" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h2 className="section-title">Couples Quiz 🎮</h2>
+        <p style={{ color: 'var(--text-pearl)', opacity: 0.8, marginBottom: '16px', fontSize: '0.95rem' }}>
+          Test how well you know each other's preferences.
+        </p>
+        <button 
+          className="editorial-text-btn" 
+          onClick={() => navigate('/quiz')}
+          style={{ width: '100%', padding: '16px', fontSize: '1.1rem', background: 'rgba(255,126,179,0.1)', borderColor: 'var(--accent-neon)', boxShadow: '0 0 15px rgba(255,126,179,0.2)' }}
+        >
+          Start Mini Game
+        </button>
+      </div>
+
       {/* Envelopes Section */}
       <div className="editorial-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

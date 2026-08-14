@@ -10,6 +10,7 @@ import Dates from './pages/Dates';
 import Fun from './pages/Fun';
 import Profile from './pages/Profile';
 import LockScreen from './pages/LockScreen';
+import Quiz from './pages/Quiz';
 import './App.css';
 
 const Navigation = () => {
@@ -111,6 +112,7 @@ function App() {
             <Route path="/dates" element={<Dates />} />
             <Route path="/fun" element={<Fun />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/quiz" element={<Quiz />} />
           </Routes>
         </main>
 
