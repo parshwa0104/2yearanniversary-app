@@ -21,7 +21,7 @@ function urlBase64ToUint8Array(base64String) {
 
 const Profile = () => {
   const [pushStatus, setPushStatus] = useState('Enable Notifications');
-  const [role, setRole] = useState('parshwa'); // Or 'diya' - would typically come from auth context
+  const [role, setRole] = useState(localStorage.getItem('appRole') || 'parshwa');
 
   useEffect(() => {
     if (Notification.permission === 'granted') {
@@ -30,6 +30,11 @@ const Profile = () => {
       setPushStatus('Blocked by Browser');
     }
   }, []);
+
+  const handleRoleChange = (newRole) => {
+    setRole(newRole);
+    localStorage.setItem('appRole', newRole);
+  };
 
   const enableNotifications = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -77,7 +82,7 @@ const Profile = () => {
       </div>
 
       <div className="couple-profiles">
-        <div className={`profile-column ${role === 'parshwa' ? 'active-role' : ''}`} onClick={() => setRole('parshwa')}>
+        <div className={`profile-column ${role === 'parshwa' ? 'active-role' : ''}`} onClick={() => handleRoleChange('parshwa')}>
           <div className="avatar-circle">P</div>
           <h3 className="profile-name">Parshwa</h3>
         </div>
@@ -87,7 +92,7 @@ const Profile = () => {
           <div className="divider-line"></div>
         </div>
 
-        <div className={`profile-column ${role === 'diya' ? 'active-role' : ''}`} onClick={() => setRole('diya')}>
+        <div className={`profile-column ${role === 'diya' ? 'active-role' : ''}`} onClick={() => handleRoleChange('diya')}>
           <div className="avatar-circle">D</div>
           <h3 className="profile-name">Diya (Tingu)</h3>
         </div>

@@ -10,14 +10,17 @@ const DailyDrop = () => {
   const [partnerDrop, setPartnerDrop] = useState(null);
   const [myDrop, setMyDrop] = useState(null);
 
+  const role = localStorage.getItem('appRole') || 'parshwa';
+  const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
+
   useEffect(() => {
     // Listen for today's drop
     const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
     const unsub = onSnapshot(doc(db, "dailyDrops", today), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.parshwa) setMyDrop(data.parshwa);
-        if (data.diya) setPartnerDrop(data.diya);
+        if (data[role]) setMyDrop(data[role]);
+        if (data[partnerRole]) setPartnerDrop(data[partnerRole]);
       }
     });
     return () => unsub();
@@ -47,7 +50,7 @@ const DailyDrop = () => {
 
     try {
       await setDoc(doc(db, "dailyDrops", today), {
-        parshwa: dropData
+        [role]: dropData
       }, { merge: true });
       
       setMessage('');
@@ -59,9 +62,9 @@ const DailyDrop = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          senderRole: 'parshwa', // We could make this dynamic like in Profile.jsx
+          senderRole: role,
           title: "New Daily Drop! 📸",
-          body: "Parshwa just sent you a photo. Tap to see it!"
+          body: `${role === 'parshwa' ? 'Parshwa' : 'Diya'} just sent you a photo. Tap to see it!`
         })
       }).catch(err => console.error("Notification trigger failed:", err));
 
@@ -119,7 +122,7 @@ const DailyDrop = () => {
 
           <button type="submit" className="editorial-text-btn" disabled={!message && !photoPreview}>
             <Send size={18} />
-            <span>Send to Diya</span>
+            <span>Send to {partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}</span>
           </button>
         </form>
       ) : (
@@ -136,16 +139,16 @@ const DailyDrop = () => {
         <div className="waiting-line"></div>
         {partnerDrop ? (
           <div className="partner-drop-view animate-fade-in">
-             <h3 style={{color: 'var(--text-blush)', fontFamily: 'var(--font-display)', marginBottom: '16px'}}>Diya's Drop</h3>
+             <h3 style={{color: 'var(--text-blush)', fontFamily: 'var(--font-display)', marginBottom: '16px'}}>{partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}'s Drop</h3>
              <div className="polaroid-frame">
-               {partnerDrop.photo && <img src={partnerDrop.photo} alt="Diya's Drop" className="polaroid-photo" />}
+               {partnerDrop.photo && <img src={partnerDrop.photo} alt="Partner Drop" className="polaroid-photo" />}
              </div>
              <p style={{fontSize: '1.2rem', color: 'var(--text-pearl)', fontStyle: 'italic', textAlign: 'center', marginTop: '16px'}}>"{partnerDrop.message}"</p>
           </div>
         ) : (
           <div className="waiting-content">
             <ImageIcon size={24} color="var(--border-plum)" strokeWidth={1.5} />
-            <p>Waiting for Diya's drop...</p>
+            <p>Waiting for {partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}'s drop...</p>
           </div>
         )}
       </div>

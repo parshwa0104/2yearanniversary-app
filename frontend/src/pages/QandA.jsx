@@ -16,18 +16,23 @@ const QandA = () => {
   const [submitted, setSubmitted] = useState(false);
 
   const currentQ = questions[currentQIndex];
+  const role = localStorage.getItem('appRole') || 'parshwa';
+  const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
     // Listen for current question answers
     const unsub = onSnapshot(doc(db, "qanda", `q_${currentQ.id}`), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.parshwa) {
-          setMyAnswer(data.parshwa);
+        if (data[role]) {
+          setMyAnswer(data[role]);
           setSubmitted(true);
+        } else {
+          setMyAnswer('');
+          setSubmitted(false);
         }
-        if (data.diya) {
-          setPartnerAnswer(data.diya);
+        if (data[partnerRole]) {
+          setPartnerAnswer(data[partnerRole]);
         } else {
           setPartnerAnswer('');
         }
@@ -46,7 +51,7 @@ const QandA = () => {
     
     try {
       await setDoc(doc(db, "qanda", `q_${currentQ.id}`), {
-        parshwa: myAnswer
+        [role]: myAnswer
       }, { merge: true });
       setSubmitted(true);
 
@@ -56,9 +61,9 @@ const QandA = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          senderRole: 'parshwa',
+          senderRole: role,
           title: "Question Answered! ✍️",
-          body: "Parshwa just answered today's question. Answer yours to see it!"
+          body: `${role === 'parshwa' ? 'Parshwa' : 'Diya'} just answered today's question. Answer yours to see it!`
         })
       }).catch(err => console.error("Notification trigger failed:", err));
 
@@ -101,12 +106,12 @@ const QandA = () => {
         ) : (
           <div className="qa-results animate-fade-in">
             <div className="answer-row">
-              <span className="answer-author">Parshwa</span>
+              <span className="answer-author">{role === 'parshwa' ? 'Parshwa' : 'Diya'}</span>
               <p className="answer-text">{myAnswer}</p>
             </div>
             <div className={`answer-row ${!partnerAnswer ? 'waiting' : ''}`}>
-              <span className="answer-author">Diya</span>
-              <p className="answer-text">{partnerAnswer || "Waiting for her to answer..."}</p>
+              <span className="answer-author">{partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}</span>
+              <p className="answer-text">{partnerAnswer || "Waiting for partner to answer..."}</p>
             </div>
 
             {currentQIndex < questions.length - 1 && (
