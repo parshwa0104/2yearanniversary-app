@@ -12,7 +12,7 @@ const defaultReasons = [
 ];
 
 const Dashboard = () => {
-  const [daysTogether, setDaysTogether] = useState(0);
+  const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [jarMessage, setJarMessage] = useState('');
   
   const [reasons, setReasons] = useState(defaultReasons);
@@ -20,17 +20,24 @@ const Dashboard = () => {
   const [editedReasonsText, setEditedReasonsText] = useState('');
 
   useEffect(() => {
-    // Start date: 7th September 2024
-    const startDate = new Date('2024-09-07T00:00:00');
-    const calculateDays = () => {
+    // Start date: 15th August 2024
+    const startDate = new Date('2024-08-15T00:00:00');
+    
+    const updateTimer = () => {
       const now = new Date();
       const diffTime = now - startDate;
-      const diffDays = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
-      setDaysTogether(diffDays);
+      
+      if (diffTime > 0) {
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffTime / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diffTime / 1000 / 60) % 60);
+        const seconds = Math.floor((diffTime / 1000) % 60);
+        setTimeTogether({ days, hours, minutes, seconds });
+      }
     };
 
-    calculateDays();
-    const timer = setInterval(calculateDays, 1000 * 60 * 60);
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -64,8 +71,25 @@ const Dashboard = () => {
   return (
     <div className="page-container dashboard">
       <div className="days-header">
-        <span className="days-number">{daysTogether}</span>
+        <span className="days-number">{timeTogether.days}</span>
         <span className="days-label">Days together</span>
+        
+        <div className="time-details animate-fade-in">
+          <div className="time-unit">
+            <span className="time-val">{timeTogether.hours}</span>
+            <span className="time-lbl">hrs</span>
+          </div>
+          <div className="time-sep">:</div>
+          <div className="time-unit">
+            <span className="time-val">{timeTogether.minutes}</span>
+            <span className="time-lbl">min</span>
+          </div>
+          <div className="time-sep">:</div>
+          <div className="time-unit">
+            <span className="time-val">{timeTogether.seconds}</span>
+            <span className="time-lbl">sec</span>
+          </div>
+        </div>
       </div>
 
       <div className="jar-wrapper">
