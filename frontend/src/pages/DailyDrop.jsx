@@ -21,10 +21,11 @@ const DailyDrop = () => {
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
-    const q = query(collection(db, "dailyDrops"), orderBy(documentId(), "desc"), limit(30));
+    // Simplify query to avoid any Firebase index or orderBy crashes
+    const q = query(collection(db, "dailyDrops"));
     const unsub = onSnapshot(q, (snapshot) => {
       const today = getLocalToday();
-      const hist = [];
+      let hist = [];
       let todayMyDrop = null;
       let todayPartnerDrop = null;
       let todayDoc = null;
@@ -40,6 +41,10 @@ const DailyDrop = () => {
         }
       });
 
+      // Sort history descending by date string
+      hist.sort((a, b) => b.id.localeCompare(a.id));
+      hist = hist.slice(0, 30); // Keep max 30 past drops
+
       // Calculate Streak
       let currentStreak = 0;
       let checkDate = new Date();
@@ -50,7 +55,7 @@ const DailyDrop = () => {
       checkDate.setDate(checkDate.getDate() - 1);
       
       while (true) {
-        const histDayStr = checkDate.toLocaleDateString('en-CA');
+        const histDayStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
         const histDoc = hist.find(h => h.id === histDayStr);
         if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
           currentStreak += 1;
