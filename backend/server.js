@@ -2,13 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const webpush = require('web-push');
-const admin = require('firebase-admin');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Initialize Firebase Admin
+let db = null;
 try {
   let serviceAccount;
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -19,14 +21,15 @@ try {
     serviceAccount = require('./serviceAccountKey.json');
   }
   
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  if (getApps().length === 0) {
+    initializeApp({
+      credential: cert(serviceAccount)
+    });
+  }
+  db = getFirestore();
 } catch (error) {
-  console.log("Waiting for Firebase credentials...");
+  console.log("Waiting for Firebase credentials or error parsing:", error.message);
 }
-
-const db = admin.apps.length ? admin.firestore() : null;
 
 // Configure Web Push VAPID Keys
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY;
