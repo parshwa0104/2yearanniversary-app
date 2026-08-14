@@ -16,29 +16,29 @@ const DateLog = () => {
       snapshot.forEach((doc) => {
         datesData.push({ id: doc.id, ...doc.data() });
       });
-      
+
       // Add first date manually if empty (or always append it at bottom)
       const firstDate = {
         id: 'first-date',
         title: "Our First Date",
         location: "Nariman Point",
-        liked: "My paryushan was going on so I couldn't eat anything outside. We just sat close to each other. I was nervous to hold your hand, but I finally did when we went back to the station.",
-        date: "Aug 15, 2024"
+        liked: "My paryushan was going on so I couldn't eat anything outside. We just sat close to each other. I was nervous to hold you close to me, but I finally did when we went back to the station.",
+        date: "Sept 07, 2024"
       };
-      
+
       setDates([...datesData, firstDate]);
       setLoading(false);
     });
-    
+
     return () => unsub();
   }, []);
 
   const handleAddDate = async (e) => {
     e.preventDefault();
     if (!newDate.title) return;
-    
+
     const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
+
     try {
       await addDoc(collection(db, "dates"), {
         title: newDate.title,
@@ -65,32 +65,32 @@ const DateLog = () => {
       {showAddForm && (
         <form className="add-timeline-form animate-fade-in" onSubmit={handleAddDate}>
           <div className="editorial-input-group">
-            <input 
-              type="text" 
-              className="editorial-input" 
+            <input
+              type="text"
+              className="editorial-input"
               placeholder="What did we do?"
               value={newDate.title}
-              onChange={(e) => setNewDate({...newDate, title: e.target.value})}
+              onChange={(e) => setNewDate({ ...newDate, title: e.target.value })}
               required
             />
           </div>
 
           <div className="editorial-input-group">
-            <input 
-              type="text" 
-              className="editorial-input" 
+            <input
+              type="text"
+              className="editorial-input"
               placeholder="Where?"
               value={newDate.location}
-              onChange={(e) => setNewDate({...newDate, location: e.target.value})}
+              onChange={(e) => setNewDate({ ...newDate, location: e.target.value })}
             />
           </div>
 
           <div className="editorial-input-group">
-            <textarea 
-              className="editorial-textarea" 
+            <textarea
+              className="editorial-textarea"
               placeholder="What made it special?"
               value={newDate.liked}
-              onChange={(e) => setNewDate({...newDate, liked: e.target.value})}
+              onChange={(e) => setNewDate({ ...newDate, liked: e.target.value })}
               rows="3"
             />
           </div>
@@ -102,7 +102,7 @@ const DateLog = () => {
       )}
 
       {loading ? (
-        <div style={{textAlign: 'center', color: 'var(--text-blush)'}}>Loading memories...</div>
+        <div style={{ textAlign: 'center', color: 'var(--text-blush)' }}>Loading memories...</div>
       ) : (
         <div className="true-timeline">
           {dates.map((date, index) => (
@@ -117,7 +117,7 @@ const DateLog = () => {
             </div>
           ))}
           <div className="timeline-node center end-node">
-              <div className="node-dot faded"></div>
+            <div className="node-dot faded"></div>
           </div>
         </div>
       )}
