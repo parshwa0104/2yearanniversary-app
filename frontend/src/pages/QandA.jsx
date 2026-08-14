@@ -6,22 +6,38 @@ import './QandA.css';
 const questions = [
   { id: 1, text: "What was your first impression of me?" },
   { id: 2, text: "What is your favorite memory of us together?" },
-  { id: 3, text: "Where do you see us in 5 years?" }
+  { id: 3, text: "Where do you see us in 5 years?" },
+  { id: 4, text: "What's the most annoying habit I have?" },
+  { id: 5, text: "When did you realize you were falling for me?" },
+  { id: 6, text: "What is a small thing I do that makes you smile?" },
+  { id: 7, text: "If we could travel anywhere tomorrow, where would we go?" },
+  { id: 8, text: "What's a goal you want us to achieve together this year?" },
+  { id: 9, text: "What is your favorite physical feature of mine?" },
+  { id: 10, text: "What song reminds you of us the most?" }
 ];
 
 const QandA = () => {
-  const [currentQIndex, setCurrentQIndex] = useState(0);
   const [myAnswer, setMyAnswer] = useState('');
   const [partnerAnswer, setPartnerAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  // Calculate question of the day based on date
+  const today = new Date();
+  const startDate = new Date('2024-08-15T00:00:00');
+  const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
+  const currentQIndex = diffDays % questions.length;
+  
   const currentQ = questions[currentQIndex];
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
     // Listen for current question answers
-    const unsub = onSnapshot(doc(db, "qanda", `q_${currentQ.id}`), (docSnap) => {
+    const todayStr = today.toLocaleDateString('en-CA');
+    // Using both question ID and today's date so answers don't carry over if questions loop
+    const docId = `q_${currentQ.id}_${todayStr}`;
+    
+    const unsub = onSnapshot(doc(db, "qanda", docId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data[role]) {
@@ -43,14 +59,17 @@ const QandA = () => {
       }
     });
     return () => unsub();
-  }, [currentQ.id]);
+  }, [currentQ.id, today.toLocaleDateString('en-CA')]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!myAnswer.trim()) return;
     
     try {
-      await setDoc(doc(db, "qanda", `q_${currentQ.id}`), {
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      const docId = `q_${currentQ.id}_${todayStr}`;
+      
+      await setDoc(doc(db, "qanda", docId), {
         [role]: myAnswer
       }, { merge: true });
       setSubmitted(true);
@@ -72,17 +91,11 @@ const QandA = () => {
     }
   };
 
-  const nextQuestion = () => {
-    if (currentQIndex < questions.length - 1) {
-      setCurrentQIndex(currentQIndex + 1);
-    }
-  };
-
   return (
     <div className="qa-section animate-fade-in">
       <div className="editorial-header">
         <h2 className="section-title">Question of the day</h2>
-        <span className="editorial-meta">{currentQIndex + 1} / {questions.length}</span>
+        <span className="editorial-meta">Daily Prompt</span>
       </div>
 
       <div className="qa-content">
@@ -113,14 +126,6 @@ const QandA = () => {
               <span className="answer-author">{partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}</span>
               <p className="answer-text">{partnerAnswer || "Waiting for partner to answer..."}</p>
             </div>
-
-            {currentQIndex < questions.length - 1 && (
-              <div className="qa-actions">
-                <button onClick={nextQuestion} className="editorial-text-btn">
-                  Next Question
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
