@@ -29,3 +29,6 @@ firestore.rules
 *.njsproj
 *.sln
 *.sw?
+backend/serviceAccountKey.json
+backend/.env
+backend/node_modules

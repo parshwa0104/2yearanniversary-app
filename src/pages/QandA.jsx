@@ -49,6 +49,19 @@ const QandA = () => {
         parshwa: myAnswer
       }, { merge: true });
       setSubmitted(true);
+
+      // Trigger Web Push Notification
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      fetch(`${BACKEND_URL}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderRole: 'parshwa',
+          title: "Question Answered! ✍️",
+          body: "Parshwa just answered today's question. Answer yours to see it!"
+        })
+      }).catch(err => console.error("Notification trigger failed:", err));
+
     } catch (err) {
       console.error(err);
     }

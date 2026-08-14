@@ -52,6 +52,19 @@ const DailyDrop = () => {
       
       setMessage('');
       setPhotoPreview(null);
+
+      // Trigger Web Push Notification
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+      fetch(`${BACKEND_URL}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderRole: 'parshwa', // We could make this dynamic like in Profile.jsx
+          title: "New Daily Drop! 📸",
+          body: "Parshwa just sent you a photo. Tap to see it!"
+        })
+      }).catch(err => console.error("Notification trigger failed:", err));
+
     } catch (err) {
       console.error(err);
     }
