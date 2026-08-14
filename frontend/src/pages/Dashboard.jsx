@@ -20,12 +20,12 @@ const Dashboard = () => {
   const [editedReasonsText, setEditedReasonsText] = useState('');
 
   useEffect(() => {
-    // Start date: 15th August 2024, 6 PM
-    const startDate = new Date('2024-08-15T18:00:00');
+    // Start date: 7th September 2024
+    const startDate = new Date('2024-09-07T00:00:00');
     const calculateDays = () => {
       const now = new Date();
-      const diffTime = Math.abs(now - startDate);
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffTime = now - startDate;
+      const diffDays = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
       setDaysTogether(diffDays);
     };
 

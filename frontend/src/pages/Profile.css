@@ -22,6 +22,19 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+
+.profile-column.active-role {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.profile-column.active-role .avatar-circle {
+  border-color: var(--text-blush);
+  box-shadow: 0 0 15px rgba(230, 168, 168, 0.2);
 }
 
 .avatar-circle {

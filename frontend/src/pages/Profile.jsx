@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
+import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 import './Profile.css';
 
 // We will use the Vercel deployed backend URL or localhost for testing
@@ -125,8 +127,9 @@ const Profile = () => {
       </div>
       
       <div className="logout-section">
-        <button className="editorial-text-btn logout-btn" onClick={() => {
+        <button className="editorial-text-btn logout-btn" onClick={async () => {
           localStorage.removeItem('appUnlocked');
+          await signOut(auth);
           window.location.reload();
         }}>Sign Out</button>
       </div>
