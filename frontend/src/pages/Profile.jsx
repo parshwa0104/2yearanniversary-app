@@ -130,7 +130,7 @@ const Profile = () => {
         <button className="editorial-text-btn logout-btn" onClick={async () => {
           localStorage.removeItem('appUnlocked');
           await signOut(auth);
-          window.location.reload();
+          window.location.href = '/';
         }}>Sign Out</button>
       </div>
     </div>
