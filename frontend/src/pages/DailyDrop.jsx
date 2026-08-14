@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Send } from 'lucide-react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import './DailyDrop.css';
 
@@ -10,18 +10,31 @@ const DailyDrop = () => {
   const [partnerDrop, setPartnerDrop] = useState(null);
   const [myDrop, setMyDrop] = useState(null);
 
+  const [history, setHistory] = useState([]);
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
-    // Listen for today's drop
-    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-    const unsub = onSnapshot(doc(db, "dailyDrops", today), (docSnap) => {
-      if (docSnap.exists()) {
+    const q = query(collection(db, "dailyDrops"), orderBy("__name__", "desc"), limit(30));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const today = new Date().toLocaleDateString('en-CA');
+      const hist = [];
+      let todayMyDrop = null;
+      let todayPartnerDrop = null;
+
+      snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        if (data[role]) setMyDrop(data[role]);
-        if (data[partnerRole]) setPartnerDrop(data[partnerRole]);
-      }
+        if (docSnap.id === today) {
+          if (data[role]) todayMyDrop = data[role];
+          if (data[partnerRole]) todayPartnerDrop = data[partnerRole];
+        } else {
+          hist.push({ id: docSnap.id, ...data });
+        }
+      });
+
+      setMyDrop(todayMyDrop);
+      setPartnerDrop(todayPartnerDrop);
+      setHistory(hist);
     });
     return () => unsub();
   }, []);
@@ -56,6 +69,10 @@ const DailyDrop = () => {
           ctx.drawImage(img, 0, 0, width, height);
           
           const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+          if (compressedBase64.length > 900000) {
+            alert("This image is still too large even after compression! Please try a different photo.");
+            return;
+          }
           setPhotoPreview(compressedBase64);
         };
         img.src = reader.result;
@@ -179,6 +196,37 @@ const DailyDrop = () => {
           </div>
         )}
       </div>
+
+      {history.length > 0 && (
+        <div className="history-section" style={{ marginTop: '60px', padding: '20px 0', borderTop: '1px dashed var(--border-plum)' }}>
+          <h2 className="section-title" style={{ fontSize: '1.5rem', marginBottom: '24px' }}>Past Memories</h2>
+          <div className="history-feed" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {history.map(day => (
+              <div key={day.id} className="history-day" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '16px', border: '1px solid var(--border-plum)' }}>
+                <h3 style={{ color: 'var(--text-blush)', fontSize: '0.9rem', marginBottom: '16px', textAlign: 'center', letterSpacing: '0.1em' }}>
+                  {new Date(day.id).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </h3>
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
+                  {['parshwa', 'diya'].map(r => {
+                    const drop = day[r];
+                    if (!drop) return null;
+                    return (
+                      <div key={r} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
+                        <h4 style={{ fontSize: '0.8rem', color: 'var(--text-pearl)', opacity: 0.6, marginBottom: '8px', textAlign: 'center', textTransform: 'capitalize' }}>{r}</h4>
+                        <div className="polaroid-frame" style={{ padding: '8px', paddingBottom: '24px' }}>
+                          {drop.photo && <img src={drop.photo} alt={`${r}'s drop`} className="polaroid-photo" />}
+                        </div>
+                        <p style={{ fontSize: '1rem', color: 'var(--text-pearl)', fontStyle: 'italic', textAlign: 'center', marginTop: '12px' }}>"{drop.message}"</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
