@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Camera, Image as ImageIcon, Send } from 'lucide-react';
-import { doc, onSnapshot, setDoc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query, orderBy, limit, documentId } from 'firebase/firestore';
 import { db } from '../firebase';
 import './DailyDrop.css';
+
+const getLocalToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const DailyDrop = () => {
   const [message, setMessage] = useState('');
@@ -16,9 +21,9 @@ const DailyDrop = () => {
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
-    const q = query(collection(db, "dailyDrops"), orderBy("__name__", "desc"), limit(30));
+    const q = query(collection(db, "dailyDrops"), orderBy(documentId(), "desc"), limit(30));
     const unsub = onSnapshot(q, (snapshot) => {
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = getLocalToday();
       const hist = [];
       let todayMyDrop = null;
       let todayPartnerDrop = null;
@@ -109,7 +114,7 @@ const DailyDrop = () => {
     e.preventDefault();
     if (!message && !photoPreview) return;
     
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = getLocalToday();
     const dropData = {
       message: message,
       photo: photoPreview,
