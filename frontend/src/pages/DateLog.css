@@ -1,0 +1,132 @@
+.timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.timeline-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.add-timeline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 0;
+  border-top: 1px dashed var(--border-plum);
+  border-bottom: 1px dashed var(--border-plum);
+}
+
+.editorial-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-plum);
+  color: var(--text-pearl);
+  font-size: 1.1rem;
+  padding: 8px 0;
+}
+
+.editorial-input:focus {
+  outline: none;
+  border-bottom-color: var(--text-blush);
+}
+
+.form-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.true-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 20px 0;
+}
+
+.true-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--text-blush);
+  transform: translateX(-50%);
+  opacity: 0.3;
+}
+
+.timeline-node {
+  display: flex;
+  position: relative;
+  width: 100%;
+}
+
+.timeline-node.left {
+  justify-content: flex-start;
+}
+
+.timeline-node.right {
+  justify-content: flex-end;
+}
+
+.node-content {
+  width: calc(50% - 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-node.left .node-content {
+  text-align: right;
+}
+
+.timeline-node.right .node-content {
+  text-align: left;
+}
+
+.node-dot {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: var(--text-blush);
+  border-radius: 50%;
+  z-index: 2;
+}
+
+.node-dot.faded {
+  background: var(--bg-deep);
+  border: 1px solid var(--text-blush);
+  opacity: 0.5;
+}
+
+.node-date {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-blush);
+}
+
+.node-title {
+  font-size: 1.4rem;
+  color: var(--text-pearl);
+}
+
+.node-location {
+  font-size: 0.9rem;
+  color: var(--text-blush);
+  font-style: italic;
+}
+
+.node-memory {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--text-pearl);
+  opacity: 0.9;
+}
