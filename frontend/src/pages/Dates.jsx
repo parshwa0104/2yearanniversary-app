@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import DateLog from './DateLog';
 import './Dates.css';
 
-const dateIdeas = [
+const defaultDateIdeas = [
   // 📍 Midpoint Meetups (Bandra, Andheri, Juhu - Best for splitting the travel)
   "Bandra Hill Road thrift shopping followed by lunch at Candies",
   "Walk at Juhu Beach and getting street food at the Juhu Chowpatty stalls",
