@@ -11,6 +11,7 @@ const DailyDrop = () => {
   const [myDrop, setMyDrop] = useState(null);
 
   const [history, setHistory] = useState([]);
+  const [streak, setStreak] = useState(0);
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
@@ -21,10 +22,12 @@ const DailyDrop = () => {
       const hist = [];
       let todayMyDrop = null;
       let todayPartnerDrop = null;
+      let todayDoc = null;
 
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         if (docSnap.id === today) {
+          todayDoc = data;
           if (data[role]) todayMyDrop = data[role];
           if (data[partnerRole]) todayPartnerDrop = data[partnerRole];
         } else {
@@ -32,6 +35,27 @@ const DailyDrop = () => {
         }
       });
 
+      // Calculate Streak
+      let currentStreak = 0;
+      let checkDate = new Date();
+      
+      if (todayDoc && todayDoc['parshwa'] && todayDoc['diya']) {
+        currentStreak += 1;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+      
+      while (true) {
+        const histDayStr = checkDate.toLocaleDateString('en-CA');
+        const histDoc = hist.find(h => h.id === histDayStr);
+        if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
+          currentStreak += 1;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+
+      setStreak(currentStreak);
       setMyDrop(todayMyDrop);
       setPartnerDrop(todayPartnerDrop);
       setHistory(hist);
@@ -121,7 +145,7 @@ const DailyDrop = () => {
     <div className="daily-drop-section animate-fade-in">
       <div className="editorial-header">
         <h2 className="section-title">Share a moment</h2>
-        <span className="editorial-meta">0 Days Streak</span>
+        <span className="editorial-meta">{streak} {streak === 1 ? 'Day' : 'Days'} Streak</span>
       </div>
 
       {!myDrop ? (
