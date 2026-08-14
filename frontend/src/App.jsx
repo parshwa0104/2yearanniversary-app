@@ -45,11 +45,19 @@ const Navigation = () => {
   );
 };
 
+const PLAYLIST = [
+  '/Beloved(chosic.com).mp3',
+  '/scott-buckley-reverie(chosic.com).mp3',
+  '/Warm-Memories-Emotional-Inspiring-Piano(chosic.com).mp3',
+  '/Winter-Long-Version(chosic.com).mp3'
+];
+
 function App() {
   const [isLocked, setIsLocked] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
   const [musicPlaying, setMusicPlaying] = useState(false);
-  const [audio] = useState(new Audio('/background-music.mp3'));
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [audio] = useState(new Audio(PLAYLIST[0]));
 
   useEffect(() => {
     // Listen to actual Firebase Auth state
@@ -66,13 +74,29 @@ function App() {
   }, []);
 
   useEffect(() => {
-    audio.loop = true;
+    const handleEnded = () => {
+      setCurrentTrackIndex(prev => (prev + 1) % PLAYLIST.length);
+    };
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [audio]);
+
+  useEffect(() => {
+    // Prevent double play by checking if the source actually changed
+    if (!audio.src.endsWith(PLAYLIST[currentTrackIndex])) {
+      audio.src = PLAYLIST[currentTrackIndex];
+      if (musicPlaying) {
+        audio.play().catch(e => console.error("Audio play failed:", e));
+      }
+    }
+  }, [currentTrackIndex, audio, musicPlaying]);
+
+  useEffect(() => {
     if (musicPlaying) {
       audio.play().catch(e => console.error("Audio play failed:", e));
     } else {
       audio.pause();
     }
-    return () => audio.pause();
   }, [musicPlaying, audio]);
 
   const handleUnlock = () => {
