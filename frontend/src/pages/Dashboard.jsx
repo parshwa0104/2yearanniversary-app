@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Check } from 'lucide-react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Dashboard.css';
 
@@ -31,6 +31,9 @@ const Dashboard = () => {
   const [myMood, setMyMood] = useState(null);
   const [partnerMood, setPartnerMood] = useState(null);
   const [isNudgeCooldown, setIsNudgeCooldown] = useState(false);
+
+  const [photoStreak, setPhotoStreak] = useState(0);
+  const [qaStreak, setQaStreak] = useState(0);
 
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
@@ -78,6 +81,72 @@ const Dashboard = () => {
       }
     });
     return () => unsub();
+  }, [role, partnerRole]);
+
+  useEffect(() => {
+    const unsubDrops = onSnapshot(query(collection(db, "dailyDrops")), (snapshot) => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const todayDoc = docs.find(d => d.id === todayStr);
+
+      let currentStreak = 0;
+      let checkDate = new Date();
+      
+      if (todayDoc && todayDoc['parshwa'] && todayDoc['diya']) {
+        currentStreak += 1;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+      
+      while (true) {
+        const histDayStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        const histDoc = docs.find(h => h.id === histDayStr);
+        if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
+          currentStreak += 1;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      setPhotoStreak(currentStreak);
+    });
+
+    const unsubQa = onSnapshot(query(collection(db, "qanda")), (snapshot) => {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const docs = snapshot.docs.map(d => {
+        const parts = d.id.split('_');
+        return { dateStr: parts[parts.length - 1], ...d.data() };
+      });
+      const todayDoc = docs.find(d => d.dateStr === todayStr);
+
+      let currentStreak = 0;
+      let checkDate = new Date();
+      
+      if (todayDoc && todayDoc['parshwa'] && todayDoc['diya']) {
+        currentStreak += 1;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+      
+      while (true) {
+        const histDayStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        const histDoc = docs.find(h => h.dateStr === histDayStr);
+        if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
+          currentStreak += 1;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      setQaStreak(currentStreak);
+    });
+
+    return () => {
+      unsubDrops();
+      unsubQa();
+    };
   }, []);
 
   const handleMoodSelect = async (moodId) => {
@@ -244,11 +313,11 @@ const Dashboard = () => {
         <ul className="elegant-list">
           <li className="elegant-item">
             <span className="item-name">Daily Photo Drop</span>
-            <span className="item-meta">0 Days Streak</span>
+            <span className="item-meta">{photoStreak} {photoStreak === 1 ? 'Day' : 'Days'} Streak</span>
           </li>
           <li className="elegant-item">
             <span className="item-name">Daily Question</span>
-            <span className="item-meta">0 Days Streak</span>
+            <span className="item-meta">{qaStreak} {qaStreak === 1 ? 'Day' : 'Days'} Streak</span>
           </li>
         </ul>
       </div>
