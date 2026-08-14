@@ -23,7 +23,7 @@ function urlBase64ToUint8Array(base64String) {
 
 const Profile = () => {
   const [pushStatus, setPushStatus] = useState('Enable Notifications');
-  const [role, setRole] = useState(localStorage.getItem('appRole') || 'parshwa');
+  const [role, setRole] = useState(localStorage.getItem('appRole') || null);
 
   useEffect(() => {
     if (Notification.permission === 'granted') {
@@ -34,6 +34,10 @@ const Profile = () => {
   }, []);
 
   const handleRoleChange = (newRole) => {
+    if (localStorage.getItem('appRole')) {
+      alert(`This phone is permanently locked to ${role === 'parshwa' ? 'Parshwa' : 'Diya'}. You cannot switch profiles!`);
+      return;
+    }
     setRole(newRole);
     localStorage.setItem('appRole', newRole);
   };
