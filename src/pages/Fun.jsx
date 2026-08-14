@@ -27,9 +27,12 @@ const Fun = () => {
         setEnvelopes(docSnap.data().items);
       } else {
         // Initialize default envelopes if none exist
-        setDoc(doc(db, "appData", "envelopes"), { items: defaultEnvelopes });
+        setDoc(doc(db, "appData", "envelopes"), { items: defaultEnvelopes }).catch(e => console.error("setDoc error:", e));
         setEnvelopes(defaultEnvelopes);
       }
+    }, (error) => {
+      console.error("Snapshot error:", error);
+      setEnvelopes(defaultEnvelopes);
     });
     return () => unsub();
   }, []);
