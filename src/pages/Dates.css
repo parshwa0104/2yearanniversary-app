@@ -1,0 +1,50 @@
+.dates-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.generator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.roulette-container {
+  width: 100%;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-top: 1px solid var(--border-plum);
+  border-bottom: 1px solid var(--border-plum);
+}
+
+.roulette-text {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--text-pearl);
+  transition: all 0.2s ease;
+  font-style: italic;
+}
+
+.roulette-text.spinning {
+  color: var(--text-blush);
+  transform: scale(0.98);
+  opacity: 0.8;
+  filter: blur(1px);
+}
+
+.center-btn {
+  align-self: center;
+  margin-top: 8px;
+}
+
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}

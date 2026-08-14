@@ -1,0 +1,107 @@
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: center;
+}
+
+.profile-header {
+  text-align: center;
+}
+
+.couple-profiles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.profile-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--surface-wine);
+  border: 1px solid var(--border-plum);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--text-pearl);
+}
+
+.profile-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-pearl);
+}
+
+.heart-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.divider-line {
+  width: 1px;
+  height: 40px;
+  background: var(--border-plum);
+}
+
+.app-settings {
+  width: 100%;
+  max-width: 400px;
+  margin-top: 20px;
+}
+
+.settings-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-blush);
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-plum);
+  padding-bottom: 8px;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-plum);
+}
+
+.setting-label {
+  font-size: 1.1rem;
+  color: var(--text-pearl);
+}
+
+.logout-section {
+  margin-top: auto;
+  padding-top: 40px;
+}
+
+.logout-btn {
+  color: var(--text-blush);
+  border-color: var(--text-blush);
+}
+
+.logout-btn:hover {
+  color: #ff4d4d;
+  border-color: #ff4d4d;
+}
