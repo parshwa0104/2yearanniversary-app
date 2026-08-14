@@ -136,17 +136,28 @@ const DateLog = () => {
           {dates.map((date, index) => (
             <div key={date.id} className={`timeline-node ${index % 2 === 0 ? 'left' : 'right'} animate-fade-in`}>
               <div className="node-dot"></div>
-              <div className="node-content" style={{ position: 'relative' }}>
-                {date.id !== 'first-date' && (
-                  <button 
-                    onClick={() => handleDeleteDate(date.id)}
-                    style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text-pearl)', opacity: 0.5, cursor: 'pointer', padding: '4px' }}
-                    title="Delete memory"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-                <span className="node-date">{date.date}</span>
+              <div className="node-content">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: index % 2 === 0 ? 'flex-end' : 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                  {index % 2 === 0 && date.id !== 'first-date' && (
+                    <button 
+                      onClick={() => handleDeleteDate(date.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-pearl)', opacity: 0.5, cursor: 'pointer', padding: '0', display: 'flex' }}
+                      title="Delete memory"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                  <span className="node-date" style={{ marginBottom: 0 }}>{date.date}</span>
+                  {index % 2 !== 0 && date.id !== 'first-date' && (
+                    <button 
+                      onClick={() => handleDeleteDate(date.id)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-pearl)', opacity: 0.5, cursor: 'pointer', padding: '0', display: 'flex' }}
+                      title="Delete memory"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
                 <h3 className="node-title">{date.title}</h3>
                 {date.location && <span className="node-location">{date.location}</span>}
                 {date.liked && <p className="node-memory">{date.liked}</p>}
