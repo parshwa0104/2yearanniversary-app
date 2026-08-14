@@ -240,3 +240,107 @@
   font-size: 0.85rem;
   color: var(--text-blush);
 }
+
+.nudge-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-plum);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: var(--text-blush);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.nudge-btn:hover:not(:disabled) {
+  border-color: var(--accent-neon);
+  box-shadow: 0 0 10px rgba(255, 126, 179, 0.2);
+}
+.nudge-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--text-pearl);
+}
+
+.mood-ring-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-plum);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mood-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.mood-partner, .mood-me {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.mood-name {
+  font-size: 0.8rem;
+  color: var(--text-pearl);
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mood-emoji-big {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 4px 12px rgba(255, 126, 179, 0.15));
+  animation: float 4s ease-in-out infinite;
+}
+
+.mood-partner .mood-emoji-big {
+  animation-delay: -2s;
+}
+
+.mood-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border-plum);
+  opacity: 0.5;
+}
+
+.mood-selector {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-plum);
+}
+
+.mood-btn {
+  background: none;
+  border: 1px solid transparent;
+  font-size: 1.5rem;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.mood-btn:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mood-btn.active {
+  border-color: var(--accent-neon);
+  background: rgba(255, 126, 179, 0.1);
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 126, 179, 0.2);
+}

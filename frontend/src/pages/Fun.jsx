@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Edit2, Check } from 'lucide-react';
+import { Plus, X, Edit2, Check, Lock } from 'lucide-react';
 import { doc, onSnapshot, setDoc, collection, addDoc, updateDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Fun.css';
@@ -16,6 +16,10 @@ const Fun = () => {
   const [selectedEnvelope, setSelectedEnvelope] = useState(null);
   const [isEditingEnvelope, setIsEditingEnvelope] = useState(false);
   const [editedMessage, setEditedMessage] = useState('');
+  
+  const [showAddEnvelope, setShowAddEnvelope] = useState(false);
+  const [newEnvLabel, setNewEnvLabel] = useState('');
+  const [newEnvMessage, setNewEnvMessage] = useState('');
   
   const [bucketList, setBucketList] = useState([]);
   const [newItem, setNewItem] = useState('');
@@ -104,20 +108,78 @@ const Fun = () => {
     }
   };
 
+  const handleCreateEnvelope = async (e) => {
+    e.preventDefault();
+    if (!newEnvLabel.trim()) return;
+    
+    const newEnv = {
+      id: 'env_' + Date.now(),
+      label: newEnvLabel,
+      message: newEnvMessage,
+      isOpen: false
+    };
+    
+    const updatedEnvs = [...envelopes, newEnv];
+    try {
+      await setDoc(doc(db, "appData", "envelopes"), { items: updatedEnvs });
+      setNewEnvLabel('');
+      setNewEnvMessage('');
+      setShowAddEnvelope(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="page-container fun-page">
       
       {/* Envelopes Section */}
       <div className="editorial-section">
-        <h2 className="section-title">Open When...</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 className="section-title" style={{ marginBottom: 0 }}>Open When...</h2>
+          <button className="icon-btn" onClick={() => setShowAddEnvelope(!showAddEnvelope)}>
+            {showAddEnvelope ? <X size={18} /> : <Plus size={18} />}
+          </button>
+        </div>
+        
+        {showAddEnvelope && (
+          <form className="add-timeline-form animate-fade-in" onSubmit={handleCreateEnvelope} style={{ marginBottom: '24px' }}>
+            <div className="editorial-input-group">
+              <input
+                type="text"
+                className="editorial-input"
+                placeholder="Condition (e.g. Open when you are mad at me)"
+                value={newEnvLabel}
+                onChange={(e) => setNewEnvLabel(e.target.value)}
+                required
+              />
+            </div>
+            <div className="editorial-input-group">
+              <textarea
+                className="editorial-textarea"
+                placeholder="The secret message inside..."
+                value={newEnvMessage}
+                onChange={(e) => setNewEnvMessage(e.target.value)}
+                rows="3"
+                required
+              />
+            </div>
+            <button type="submit" className="editorial-text-btn">Seal Envelope</button>
+          </form>
+        )}
         
         <div className="physical-envelopes">
           {envelopes.map(env => (
             <div 
               key={env.id} 
-              className={`paper-envelope ${env.isOpen ? 'opened' : ''}`}
+              className={`paper-envelope ${env.isOpen ? 'opened' : 'locked'}`}
               onClick={() => openEnvelope(env)}
             >
+              {!env.isOpen && (
+                <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: 'var(--bg-deep)', borderRadius: '50%', padding: '6px', border: '1px solid var(--border-plum)', color: 'var(--text-pearl)' }}>
+                  <Lock size={14} />
+                </div>
+              )}
               <div className="envelope-flap"></div>
               <span className="envelope-text">{env.label}</span>
             </div>

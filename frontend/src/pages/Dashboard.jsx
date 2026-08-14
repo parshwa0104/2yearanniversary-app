@@ -11,6 +11,15 @@ const defaultReasons = [
   "I love the way we can talk about absolutely nothing for hours."
 ];
 
+const MOODS = [
+  { id: 'happy', emoji: '😊', label: 'Happy' },
+  { id: 'loved', emoji: '🥰', label: 'Loved' },
+  { id: 'tired', emoji: '😴', label: 'Tired' },
+  { id: 'sad', emoji: '😢', label: 'Sad' },
+  { id: 'angry', emoji: '😡', label: 'Angry' },
+  { id: 'stressed', emoji: '🤯', label: 'Stressed' }
+];
+
 const Dashboard = () => {
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [jarMessage, setJarMessage] = useState('');
@@ -18,6 +27,13 @@ const Dashboard = () => {
   const [reasons, setReasons] = useState(defaultReasons);
   const [isEditingJar, setIsEditingJar] = useState(false);
   const [editedReasonsText, setEditedReasonsText] = useState('');
+
+  const [myMood, setMyMood] = useState(null);
+  const [partnerMood, setPartnerMood] = useState(null);
+  const [isNudgeCooldown, setIsNudgeCooldown] = useState(false);
+
+  const role = localStorage.getItem('appRole') || 'parshwa';
+  const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
 
   useEffect(() => {
     // Start date: 15th August 2024
@@ -53,6 +69,48 @@ const Dashboard = () => {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "appData", "moods"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data[role]) setMyMood(data[role]);
+        if (data[partnerRole]) setPartnerMood(data[partnerRole]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleMoodSelect = async (moodId) => {
+    try {
+      await setDoc(doc(db, "appData", "moods"), {
+        [role]: moodId
+      }, { merge: true });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNudge = async () => {
+    if (isNudgeCooldown) return;
+    setIsNudgeCooldown(true);
+    setTimeout(() => setIsNudgeCooldown(false), 60000); // 60 sec cooldown
+
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    try {
+      await fetch(`${BACKEND_URL}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderRole: role,
+          title: "Thinking of You ❤️",
+          body: `${role === 'parshwa' ? 'Parshwa' : 'Diya'} is thinking about you right now!`
+        })
+      });
+    } catch (err) {
+      console.error("Nudge failed:", err);
+    }
+  };
+
   const openJar = () => {
     if (isEditingJar || reasons.length === 0) return;
     setJarMessage(reasons[Math.floor(Math.random() * reasons.length)]);
@@ -71,24 +129,67 @@ const Dashboard = () => {
   return (
     <div className="page-container dashboard">
       <div className="days-header">
-        <span className="days-number">{timeTogether.days}</span>
-        <span className="days-label">Days together</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <span className="days-number">{timeTogether.days}</span>
+            <span className="days-label">Days together</span>
+            
+            <div className="time-details animate-fade-in" style={{ justifyContent: 'flex-start' }}>
+              <div className="time-unit">
+                <span className="time-val">{timeTogether.hours}</span>
+                <span className="time-lbl">hrs</span>
+              </div>
+              <div className="time-sep">:</div>
+              <div className="time-unit">
+                <span className="time-val">{timeTogether.minutes}</span>
+                <span className="time-lbl">min</span>
+              </div>
+              <div className="time-sep">:</div>
+              <div className="time-unit">
+                <span className="time-val">{timeTogether.seconds}</span>
+                <span className="time-lbl">sec</span>
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            className="nudge-btn animate-fade-in" 
+            onClick={handleNudge}
+            disabled={isNudgeCooldown}
+          >
+            {isNudgeCooldown ? 'Sent!' : 'Nudge ❤️'}
+          </button>
+        </div>
+      </div>
+
+      <div className="mood-ring-section animate-fade-in">
+        <div className="mood-display">
+          <div className="mood-partner">
+            <span className="mood-name">{partnerRole === 'parshwa' ? 'Parshwa' : 'Diya'}'s Mood</span>
+            <div className="mood-emoji-big">
+              {partnerMood ? MOODS.find(m => m.id === partnerMood)?.emoji : '❔'}
+            </div>
+          </div>
+          <div className="mood-divider"></div>
+          <div className="mood-me">
+            <span className="mood-name">Your Mood</span>
+            <div className="mood-emoji-big">
+              {myMood ? MOODS.find(m => m.id === myMood)?.emoji : '❔'}
+            </div>
+          </div>
+        </div>
         
-        <div className="time-details animate-fade-in">
-          <div className="time-unit">
-            <span className="time-val">{timeTogether.hours}</span>
-            <span className="time-lbl">hrs</span>
-          </div>
-          <div className="time-sep">:</div>
-          <div className="time-unit">
-            <span className="time-val">{timeTogether.minutes}</span>
-            <span className="time-lbl">min</span>
-          </div>
-          <div className="time-sep">:</div>
-          <div className="time-unit">
-            <span className="time-val">{timeTogether.seconds}</span>
-            <span className="time-lbl">sec</span>
-          </div>
+        <div className="mood-selector">
+          {MOODS.map(m => (
+            <button 
+              key={m.id} 
+              className={`mood-btn ${myMood === m.id ? 'active' : ''}`}
+              onClick={() => handleMoodSelect(m.id)}
+              title={m.label}
+            >
+              {m.emoji}
+            </button>
+          ))}
         </div>
       </div>
 
