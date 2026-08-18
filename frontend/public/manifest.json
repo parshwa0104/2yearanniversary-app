@@ -1,0 +1,16 @@
+{
+  "name": "Parshwa & Diya",
+  "short_name": "P & D",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A0B14",
+  "theme_color": "#FFB7B2",
+  "icons": [
+    {
+      "src": "/app-icon.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

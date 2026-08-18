@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: '/icons.svg',
-      badge: '/icons.svg',
+      icon: '/app-icon.jpg',
+      badge: '/app-icon.jpg',
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
