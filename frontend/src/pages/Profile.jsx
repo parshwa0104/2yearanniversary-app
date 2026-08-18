@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
+import { collection, getDocs } from 'firebase/firestore';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import contentData from '../data/content.json';
 import './Profile.css';
 
 // We will use the Vercel deployed backend URL or localhost for testing
@@ -24,6 +28,79 @@ function urlBase64ToUint8Array(base64String) {
 const Profile = () => {
   const [pushStatus, setPushStatus] = useState('Enable Notifications');
   const [role, setRole] = useState(localStorage.getItem('appRole') || null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const zip = new JSZip();
+      
+      // 1. Fetch Daily Drops (Photos)
+      const dropsSnap = await getDocs(collection(db, "dailyDrops"));
+      const photosFolder = zip.folder("Photos");
+      
+      dropsSnap.forEach(docSnap => {
+        const dateId = docSnap.id;
+        const data = docSnap.data();
+        
+        ['parshwa', 'diya'].forEach(r => {
+          if (data[r] && data[r].photo) {
+            const base64Data = data[r].photo.split(',')[1];
+            if (base64Data) {
+              photosFolder.file(`${dateId}_${r}.jpg`, base64Data, { base64: true });
+            }
+          }
+        });
+      });
+
+      // 2. Fetch Story (Dates)
+      const datesSnap = await getDocs(collection(db, "dates"));
+      let storyText = "OUR STORY SO FAR\n================\n\n";
+      const datesList = [];
+      datesSnap.forEach(d => datesList.push({ id: d.id, ...d.data() }));
+      datesList.sort((a, b) => b.id.localeCompare(a.id));
+      
+      datesList.forEach(d => {
+        storyText += `[${d.id}]\n`;
+        storyText += `${d.title || 'Date'}\n`;
+        storyText += `Parshwa: ${d.parshwa ? d.parshwa.text : '...'}\n`;
+        storyText += `Diya: ${d.diya ? d.diya.text : '...'}\n`;
+        storyText += `\n-------------------\n\n`;
+      });
+      zip.file("Our_Story.txt", storyText);
+
+      // 3. Fetch Q&A
+      const qaSnap = await getDocs(collection(db, "qanda"));
+      let qaText = "DAILY QUESTIONS\n===============\n\n";
+      const qaList = [];
+      qaSnap.forEach(q => qaList.push({ id: q.id, ...q.data() }));
+      qaList.sort((a, b) => a.id.localeCompare(b.id));
+
+      qaList.forEach(q => {
+        const parts = q.id.split('_'); 
+        const qId = parseInt(parts[1], 10);
+        const questionObj = contentData.questions.find(item => item.id === qId);
+        const qText = questionObj ? questionObj.text : 'Question';
+
+        qaText += `Date: ${parts[2]}\n`;
+        qaText += `Q: ${qText}\n`;
+        qaText += `Parshwa: ${q.parshwa || '...'}\n`;
+        qaText += `Diya: ${q.diya || '...'}\n`;
+        qaText += `\n-------------------\n\n`;
+      });
+      zip.file("Daily_Questions.txt", qaText);
+
+      // 4. Generate & Save
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, "Parshwa_and_Diya_Memories.zip");
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export memories.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     if (Notification.permission === 'granted') {
@@ -125,7 +202,13 @@ const Profile = () => {
           </div>
           <div className="setting-item">
             <span className="setting-label">Export Memories</span>
-            <button className="editorial-text-btn">Download</button>
+            <button 
+              className="editorial-text-btn" 
+              onClick={handleExport}
+              disabled={isExporting}
+            >
+              {isExporting ? 'Packaging...' : 'Download ZIP'}
+            </button>
           </div>
         </div>
       </div>
