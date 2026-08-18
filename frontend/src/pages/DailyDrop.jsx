@@ -249,7 +249,7 @@ const DailyDrop = () => {
                       <div key={r} style={{ flex: '1 1 200px', maxWidth: '300px' }}>
                         <h4 style={{ fontSize: '0.8rem', color: 'var(--text-pearl)', opacity: 0.6, marginBottom: '8px', textAlign: 'center', textTransform: 'capitalize' }}>{r}</h4>
                         <div className="polaroid-frame" style={{ padding: '8px', paddingBottom: '24px' }}>
-                          {drop.photo && <img src={drop.photo} alt={`${r}'s drop`} className="polaroid-photo" />}
+                          {drop.photo && <img src={drop.photo} alt={`${r}'s drop`} className="polaroid-photo" loading="lazy" />}
                         </div>
                         <p style={{ fontSize: '1rem', color: 'var(--text-pearl)', fontStyle: 'italic', textAlign: 'center', marginTop: '12px' }}>"{drop.message}"</p>
                       </div>

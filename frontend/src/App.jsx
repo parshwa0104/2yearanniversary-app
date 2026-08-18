@@ -1,17 +1,18 @@
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Home, HeartHandshake, CalendarHeart, Sparkles, User, Play, Pause } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 
 import Dashboard from './pages/Dashboard';
-import Connect from './pages/Connect';
-import Dates from './pages/Dates';
-import Fun from './pages/Fun';
-import Profile from './pages/Profile';
 import LockScreen from './pages/LockScreen';
-import Quiz from './pages/Quiz';
 import './App.css';
+
+const Connect = lazy(() => import('./pages/Connect'));
+const Dates = lazy(() => import('./pages/Dates'));
+const Fun = lazy(() => import('./pages/Fun'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Quiz = lazy(() => import('./pages/Quiz'));
 
 const Navigation = () => {
   const location = useLocation();
@@ -130,14 +131,16 @@ function App() {
         </header>
 
         <main className="main-content container">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/connect" element={<Connect />} />
-            <Route path="/dates" element={<Dates />} />
-            <Route path="/fun" element={<Fun />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/quiz" element={<Quiz />} />
-          </Routes>
+          <Suspense fallback={<div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-pearl)', fontStyle: 'italic'}}>Loading...</div>}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/connect" element={<Connect />} />
+              <Route path="/dates" element={<Dates />} />
+              <Route path="/fun" element={<Fun />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/quiz" element={<Quiz />} />
+            </Routes>
+          </Suspense>
         </main>
 
         <Navigation />
