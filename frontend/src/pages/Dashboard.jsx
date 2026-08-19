@@ -199,46 +199,44 @@ const Dashboard = () => {
 
   return (
     <div className="page-container dashboard">
-      <div className="days-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
-          <div style={{ flex: 1 }}>
-            <span className="days-number">{timeTogether.days}</span>
-            <span className="days-label">Days together</span>
-            
-            <div className="time-details animate-fade-in" style={{ justifyContent: 'flex-start' }}>
-              <div className="time-unit">
-                <span className="time-val">{timeTogether.hours}</span>
-                <span className="time-lbl">hrs</span>
-              </div>
-              <div className="time-sep">:</div>
-              <div className="time-unit">
-                <span className="time-val">{timeTogether.minutes}</span>
-                <span className="time-lbl">min</span>
-              </div>
-              <div className="time-sep">:</div>
-              <div className="time-unit">
-                <span className="time-val">{timeTogether.seconds}</span>
-                <span className="time-lbl">sec</span>
-              </div>
-            </div>
-          </div>
+      <div className="days-header" style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '20px' }}>
+          <button 
+            className="nudge-btn animate-fade-in" 
+            onClick={handleNudge}
+            disabled={isNudgeCooldown}
+          >
+            {isNudgeCooldown ? 'Sent!' : 'Nudge ❤️'}
+          </button>
+          <button 
+            className="nudge-btn animate-fade-in"
+            style={{background: 'var(--accent-neon)', color: '#111'}}
+            onClick={() => navigate('/chat')}
+          >
+            <MessageCircle size={16} style={{marginRight: '6px', verticalAlign: 'text-bottom'}} />
+            Chat
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', textAlign: 'center' }}>
+          <span className="days-number">{timeTogether.days}</span>
+          <span className="days-label">Days together</span>
           
-          <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-            <button 
-              className="nudge-btn animate-fade-in" 
-              onClick={handleNudge}
-              disabled={isNudgeCooldown}
-            >
-              {isNudgeCooldown ? 'Sent!' : 'Nudge ❤️'}
-            </button>
-            <button 
-              className="nudge-btn animate-fade-in"
-              style={{background: 'var(--accent-neon)', color: '#111'}}
-              onClick={() => navigate('/chat')}
-            >
-              <MessageCircle size={16} style={{marginRight: '6px', verticalAlign: 'text-bottom'}} />
-              Chat
-            </button>
+          <div className="time-details animate-fade-in" style={{ justifyContent: 'center' }}>
+            <div className="time-unit">
+              <span className="time-val">{timeTogether.hours}</span>
+              <span className="time-lbl">hrs</span>
+            </div>
+            <div className="time-sep">:</div>
+            <div className="time-unit">
+              <span className="time-val">{timeTogether.minutes}</span>
+              <span className="time-lbl">min</span>
+            </div>
+            <div className="time-sep">:</div>
+            <div className="time-unit">
+              <span className="time-val">{timeTogether.seconds}</span>
+              <span className="time-lbl">sec</span>
+            </div>
           </div>
         </div>
       </div>
