@@ -53,6 +53,44 @@ const PLAYLIST = [
   '/Winter-Long-Version(chosic.com).mp3'
 ];
 
+const MainLayout = ({ musicPlaying, setMusicPlaying }) => {
+  const location = useLocation();
+  const isChat = location.pathname === '/chat';
+
+  return (
+    <div className="app-container" style={isChat ? { paddingBottom: 0, height: '100dvh', overflow: 'hidden' } : {}}>
+      {!isChat && (
+        <header className="app-header">
+          <div className="logo">
+            <span className="brand-name">Parshwa & Diya</span>
+          </div>
+          <button 
+            className="music-toggle"
+            onClick={() => setMusicPlaying(!musicPlaying)}
+            title={musicPlaying ? "Pause Music" : "Play Music"}
+          >
+            {musicPlaying ? <Pause size={18} strokeWidth={1.5} /> : <Play size={18} strokeWidth={1.5} />}
+          </button>
+        </header>
+      )}
+
+      <main className={`main-content ${!isChat ? 'container' : ''}`} style={isChat ? { padding: 0 } : {}}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/connect" element={<Connect />} />
+          <Route path="/dates" element={<Dates />} />
+          <Route path="/fun" element={<Fun />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/quiz" element={<Quiz />} />
+        </Routes>
+      </main>
+
+      {!isChat && <Navigation />}
+    </div>
+  );
+};
+
 function App() {
   const [isLocked, setIsLocked] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
@@ -116,34 +154,7 @@ function App() {
 
   return (
     <Router>
-      <div className="app-container">
-        <header className="app-header">
-          <div className="logo">
-            <span className="brand-name">Parshwa & Diya</span>
-          </div>
-          <button 
-            className="music-toggle"
-            onClick={() => setMusicPlaying(!musicPlaying)}
-            title={musicPlaying ? "Pause Music" : "Play Music"}
-          >
-            {musicPlaying ? <Pause size={18} strokeWidth={1.5} /> : <Play size={18} strokeWidth={1.5} />}
-          </button>
-        </header>
-
-        <main className="main-content container">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/connect" element={<Connect />} />
-            <Route path="/dates" element={<Dates />} />
-            <Route path="/fun" element={<Fun />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/quiz" element={<Quiz />} />
-          </Routes>
-        </main>
-
-        <Navigation />
-      </div>
+      <MainLayout musicPlaying={musicPlaying} setMusicPlaying={setMusicPlaying} />
     </Router>
   );
 }
