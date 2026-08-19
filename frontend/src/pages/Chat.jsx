@@ -8,7 +8,22 @@ import './Chat.css';
 const configuration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:global.stun.twilio.com:3478' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ]
 };
 
@@ -36,6 +51,7 @@ const Chat = () => {
   const remoteVideoRef = useRef(null);
   const pc = useRef(null);
   const callDocData = useRef(null); // Store latest call doc data for ICE callbacks
+  const processedCandidates = useRef(new Set());
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -44,11 +60,17 @@ const Chat = () => {
 
   // Sync Video Refs
   useEffect(() => {
-    if (localVideoRef.current && localStream) localVideoRef.current.srcObject = localStream;
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.play().catch(e => console.error("Local play err:", e));
+    }
   }, [localStream, callState]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(e => console.error("Remote play err:", e));
+    }
   }, [remoteStream, callState]);
 
   // Load Messages
@@ -95,12 +117,12 @@ const Chat = () => {
         const candidates = data.caller === role ? (data.calleeCandidates || []) : (data.callerCandidates || []);
         
         candidates.forEach(async (candidateData) => {
-          try {
-            const candidate = new RTCIceCandidate(candidateData);
-            // Quick check if candidate already added is hard, WebRTC ignores duplicates usually
-            await pc.current.addIceCandidate(candidate);
-          } catch (err) {
-            // Usually throws if candidate is already processed, safe to ignore
+          if (!processedCandidates.current.has(candidateData.candidate)) {
+            processedCandidates.current.add(candidateData.candidate);
+            try {
+              const candidate = new RTCIceCandidate(candidateData);
+              await pc.current.addIceCandidate(candidate);
+            } catch (err) {}
           }
         });
       }
@@ -205,19 +227,21 @@ const Chat = () => {
       await pc.current.setRemoteDescription(rtcSessionDescription);
 
       const answer = await pc.current.createAnswer();
-      
+      await pc.current.setLocalDescription(answer);
+
       await updateDoc(doc(db, 'calls', 'primary'), {
         answer: { type: answer.type, sdp: answer.sdp }
       });
 
-      await pc.current.setLocalDescription(answer);
-
       // Process any ICE candidates that arrived before the call was accepted
       if (data.callerCandidates) {
         data.callerCandidates.forEach(async (candidateData) => {
-          try {
-            await pc.current.addIceCandidate(new RTCIceCandidate(candidateData));
-          } catch (err) {}
+          if (!processedCandidates.current.has(candidateData.candidate)) {
+            processedCandidates.current.add(candidateData.candidate);
+            try {
+              await pc.current.addIceCandidate(new RTCIceCandidate(candidateData));
+            } catch (err) {}
+          }
         });
       }
     } catch (err) {
@@ -244,6 +268,7 @@ const Chat = () => {
     setCallState(null);
     setIsMuted(false);
     setIsVideoOff(false);
+    processedCandidates.current.clear();
   };
 
   const toggleMute = () => {
