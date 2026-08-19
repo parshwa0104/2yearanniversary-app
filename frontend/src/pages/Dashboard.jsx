@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Edit2, Check } from 'lucide-react';
+import { Edit2, Check, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, setDoc, collection, query } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Dashboard.css';
@@ -21,6 +22,7 @@ const MOODS = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [timeTogether, setTimeTogether] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [jarMessage, setJarMessage] = useState('');
   
@@ -221,13 +223,23 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <button 
-            className="nudge-btn animate-fade-in" 
-            onClick={handleNudge}
-            disabled={isNudgeCooldown}
-          >
-            {isNudgeCooldown ? 'Sent!' : 'Nudge ❤️'}
-          </button>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+            <button 
+              className="nudge-btn animate-fade-in" 
+              onClick={handleNudge}
+              disabled={isNudgeCooldown}
+            >
+              {isNudgeCooldown ? 'Sent!' : 'Nudge ❤️'}
+            </button>
+            <button 
+              className="nudge-btn animate-fade-in"
+              style={{background: 'var(--accent-neon)', color: '#111'}}
+              onClick={() => navigate('/chat')}
+            >
+              <MessageCircle size={16} style={{marginRight: '6px', verticalAlign: 'text-bottom'}} />
+              Chat
+            </button>
+          </div>
         </div>
       </div>
 

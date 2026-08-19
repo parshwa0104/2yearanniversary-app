@@ -11,6 +11,7 @@ import Fun from './pages/Fun';
 import Profile from './pages/Profile';
 import LockScreen from './pages/LockScreen';
 import Quiz from './pages/Quiz';
+import Chat from './pages/Chat';
 import './App.css';
 
 const Navigation = () => {
@@ -132,6 +133,7 @@ function App() {
         <main className="main-content container">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/connect" element={<Connect />} />
             <Route path="/dates" element={<Dates />} />
             <Route path="/fun" element={<Fun />} />
