@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Video, Send, PhoneOff, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneCall } from 'lucide-react';
+import { ArrowLeft, Phone, Video, Send, PhoneOff, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneCall, Check, CheckCheck } from 'lucide-react';
 import { collection, doc, addDoc, onSnapshot, query, orderBy, setDoc, deleteDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import './Chat.css';
@@ -81,6 +81,15 @@ const Chat = () => {
     });
     return () => unsub();
   }, []);
+
+  // Mark incoming messages as read
+  useEffect(() => {
+    messages.forEach(msg => {
+      if (msg.sender !== role && !msg.read) {
+        updateDoc(doc(db, 'messages', msg.id), { read: true }).catch(console.error);
+      }
+    });
+  }, [messages, role]);
 
   // Listen to Call Doc
   useEffect(() => {
@@ -187,7 +196,11 @@ const Chat = () => {
     try {
       await setupMediaAndPC(useVideo, true);
 
-      const offer = await pc.current.createOffer();
+      // Safari Transceiver Fix: Explicitly ask to receive audio and video
+      const offer = await pc.current.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       
       const callData = {
         caller: role,
@@ -311,9 +324,16 @@ const Chat = () => {
         {messages.map(msg => (
           <div key={msg.id} className={`message ${msg.sender === role ? 'mine' : 'theirs'}`}>
             <span className="message-text">{msg.text}</span>
-            <span className="message-time">
-              {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
-            </span>
+            <div className="message-meta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '4px', opacity: 0.7, fontSize: '0.75rem' }}>
+              <span className="message-time">
+                {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
+              </span>
+              {msg.sender === role && (
+                <span className="read-receipt">
+                  {msg.read ? <CheckCheck size={14} color="var(--accent-neon)" /> : <Check size={14} />}
+                </span>
+              )}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />
