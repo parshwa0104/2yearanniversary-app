@@ -134,7 +134,7 @@ const Chat = () => {
   };
 
   // --- WEBRTC SETUP ---
-  const setupMediaAndPC = async (videoEnabled) => {
+  const setupMediaAndPC = async (videoEnabled, isCaller) => {
     const stream = await navigator.mediaDevices.getUserMedia({ video: videoEnabled, audio: true });
     setLocalStream(stream);
 
@@ -149,11 +149,11 @@ const Chat = () => {
     };
 
     pc.current.onicecandidate = (event) => {
-      if (event.candidate && callDocData.current) {
-        const field = callDocData.current.caller === role ? 'callerCandidates' : 'calleeCandidates';
-        updateDoc(doc(db, 'calls', 'primary'), {
+      if (event.candidate) {
+        const field = isCaller ? 'callerCandidates' : 'calleeCandidates';
+        setDoc(doc(db, 'calls', 'primary'), {
           [field]: arrayUnion(event.candidate.toJSON())
-        }).catch(e => console.error("Error adding ice candidate:", e));
+        }, { merge: true }).catch(e => console.error("Error adding ice candidate:", e));
       }
     };
   };
@@ -163,20 +163,18 @@ const Chat = () => {
     setCallState('ringing');
     
     try {
-      await setupMediaAndPC(useVideo);
+      await setupMediaAndPC(useVideo, true);
 
       const offer = await pc.current.createOffer();
-      await pc.current.setLocalDescription(offer);
-
+      
       const callData = {
         caller: role,
         video: useVideo,
         offer: { type: offer.type, sdp: offer.sdp },
-        callerCandidates: [],
-        calleeCandidates: []
       };
-
       await setDoc(doc(db, 'calls', 'primary'), callData);
+      
+      await pc.current.setLocalDescription(offer);
 
       // Notify partner
       fetch(`${BACKEND_URL}/notify`, {
@@ -201,17 +199,27 @@ const Chat = () => {
     const data = callDocData.current;
     
     try {
-      await setupMediaAndPC(data.video);
+      await setupMediaAndPC(data.video, false);
 
       const rtcSessionDescription = new RTCSessionDescription(data.offer);
       await pc.current.setRemoteDescription(rtcSessionDescription);
 
       const answer = await pc.current.createAnswer();
-      await pc.current.setLocalDescription(answer);
-
+      
       await updateDoc(doc(db, 'calls', 'primary'), {
         answer: { type: answer.type, sdp: answer.sdp }
       });
+
+      await pc.current.setLocalDescription(answer);
+
+      // Process any ICE candidates that arrived before the call was accepted
+      if (data.callerCandidates) {
+        data.callerCandidates.forEach(async (candidateData) => {
+          try {
+            await pc.current.addIceCandidate(new RTCIceCandidate(candidateData));
+          } catch (err) {}
+        });
+      }
     } catch (err) {
       console.error(err);
       handleCleanup();
