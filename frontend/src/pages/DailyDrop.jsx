@@ -59,6 +59,9 @@ const DailyDrop = () => {
         }
       });
 
+      // Sort history descending by date string FIRST
+      hist.sort((a, b) => b.id.localeCompare(a.id));
+
       // Calculate missing days up to yesterday
       let missingCount = 0;
       const yesterday = new Date();
@@ -66,7 +69,7 @@ const DailyDrop = () => {
       
       let dynamicStartDate = new Date('2026-08-15T00:00:00');
       if (hist.length > 0) {
-        // Find the oldest date in history (last item since it's sorted descending)
+        // Oldest date is last item in descending-sorted array
         const oldestDateStr = hist[hist.length - 1].id;
         dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
       }
@@ -80,12 +83,9 @@ const DailyDrop = () => {
       }
       setMissingDaysCount(missingCount);
 
-      // Sort history descending by date string
-      hist.sort((a, b) => b.id.localeCompare(a.id));
-      setFullHistory([...hist]); // keep full history for restore
-      hist = hist.slice(0, 30); // Keep max 30 past drops for UI
+      setFullHistory([...hist]); // keep full history for restore & streak
 
-      // Calculate Streak (Consecutive Days both posted):
+      // Calculate Streak using FULL history (not truncated):
       let currentStreak = 0;
       let checkDate = new Date();
       
@@ -108,7 +108,7 @@ const DailyDrop = () => {
       setStreak(currentStreak);
       setMyDrop(todayMyDrop);
       setPartnerDrop(todayPartnerDrop);
-      setHistory(hist);
+      setHistory(hist.slice(0, 30)); // Only truncate for UI display
     });
     return () => unsub();
   }, []);

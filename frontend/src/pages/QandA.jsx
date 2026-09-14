@@ -77,8 +77,7 @@ const QandA = () => {
       
       let dynamicStartDate = new Date('2026-08-15T00:00:00');
       if (hist.length > 0) {
-        // hist is already ordered? No, wait, I didn't sort hist in QandA!
-        // Let's sort it so we can find the oldest
+        // Sort descending so last item is the oldest
         hist.sort((a, b) => b.id.localeCompare(a.id));
         const oldestDateStr = hist[hist.length - 1].id;
         dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
