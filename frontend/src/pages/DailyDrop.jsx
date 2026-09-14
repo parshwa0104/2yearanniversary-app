@@ -16,6 +16,7 @@ const DailyDrop = () => {
   const [myDrop, setMyDrop] = useState(null);
 
   const [history, setHistory] = useState([]);
+  const [fullHistory, setFullHistory] = useState([]);
   const [streak, setStreak] = useState(0);
   const [hearts, setHearts] = useState(0);
   const [missingDaysCount, setMissingDaysCount] = useState(0);
@@ -60,11 +61,17 @@ const DailyDrop = () => {
 
       // Calculate missing days up to yesterday
       let missingCount = 0;
-      const startDate = new Date('2026-08-15T00:00:00');
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+      let dynamicStartDate = new Date('2026-08-15T00:00:00');
+      if (hist.length > 0) {
+        // Find the oldest date in history (last item since it's sorted descending)
+        const oldestDateStr = hist[hist.length - 1].id;
+        dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
+      }
+      
+      for (let d = new Date(dynamicStartDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
         const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const histDoc = hist.find(h => h.id === dayStr);
         if (!histDoc || !histDoc['parshwa'] || !histDoc['diya']) {
@@ -75,7 +82,8 @@ const DailyDrop = () => {
 
       // Sort history descending by date string
       hist.sort((a, b) => b.id.localeCompare(a.id));
-      hist = hist.slice(0, 30); // Keep max 30 past drops
+      setFullHistory([...hist]); // keep full history for restore
+      hist = hist.slice(0, 30); // Keep max 30 past drops for UI
 
       // Calculate Streak (Consecutive Days both posted):
       let currentStreak = 0;
@@ -111,16 +119,21 @@ const DailyDrop = () => {
     try {
       await setDoc(doc(db, "appData", "stats"), { hearts: hearts - missingDaysCount }, { merge: true });
       
-      const startDate = new Date('2026-08-15T00:00:00');
+      let dynamicStartDate = new Date('2026-08-15T00:00:00');
+      if (fullHistory.length > 0) {
+        const oldestDateStr = fullHistory[fullHistory.length - 1].id;
+        dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
+      }
+
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+      for (let d = new Date(dynamicStartDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
         const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         const docRef = doc(db, 'dailyDrops', dayStr);
         
-        // We use history to see what was missing without extra reads
-        const histDoc = history.find(h => h.id === dayStr);
+        // We use fullHistory to see what was missing without extra reads
+        const histDoc = fullHistory.find(h => h.id === dayStr);
         let updated = false;
         const data = histDoc || {};
         
@@ -362,7 +375,7 @@ const DailyDrop = () => {
           <div className="signature-letter" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '32px', background: 'var(--bg-deep)', borderRadius: '16px', border: '1px solid var(--border-plum)', maxWidth: '300px' }}>
             <h3 style={{ color: 'var(--text-blush)', marginBottom: '16px', fontFamily: 'var(--font-display)' }}>Restore Streak?</h3>
             <p style={{ color: 'var(--text-pearl)', marginBottom: '24px', fontSize: '0.95rem' }}>
-              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak since Aug 15, 2026.
+              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak from the day you started.
             </p>
             {hearts >= missingDaysCount ? (
               <button 

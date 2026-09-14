@@ -75,7 +75,16 @@ const QandA = () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+      let dynamicStartDate = new Date('2026-08-15T00:00:00');
+      if (hist.length > 0) {
+        // hist is already ordered? No, wait, I didn't sort hist in QandA!
+        // Let's sort it so we can find the oldest
+        hist.sort((a, b) => b.id.localeCompare(a.id));
+        const oldestDateStr = hist[hist.length - 1].id;
+        dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
+      }
+      
+      for (let d = new Date(dynamicStartDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
         const dayStr = d.toLocaleDateString('en-CA');
         const histDoc = hist.find(h => h.id === dayStr);
         if (!histDoc || !histDoc['parshwa'] || !histDoc['diya']) {
@@ -118,7 +127,13 @@ const QandA = () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       
-      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+      let dynamicStartDate = new Date('2026-08-15T00:00:00');
+      if (history.length > 0) {
+        const oldestDateStr = history[history.length - 1].id;
+        dynamicStartDate = new Date(oldestDateStr + 'T00:00:00');
+      }
+      
+      for (let d = new Date(dynamicStartDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
         const dayStr = d.toLocaleDateString('en-CA');
         const histDoc = history.find(h => h.id === dayStr);
         
@@ -244,7 +259,7 @@ const QandA = () => {
           <div className="signature-letter" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '32px', background: 'var(--bg-deep)', borderRadius: '16px', border: '1px solid var(--border-plum)', maxWidth: '300px' }}>
             <h3 style={{ color: 'var(--text-blush)', marginBottom: '16px', fontFamily: 'var(--font-display)' }}>Restore Streak?</h3>
             <p style={{ color: 'var(--text-pearl)', marginBottom: '24px', fontSize: '0.95rem' }}>
-              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak since Aug 15, 2026.
+              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak from the day you started.
             </p>
             {hearts >= missingDaysCount ? (
               <button 
