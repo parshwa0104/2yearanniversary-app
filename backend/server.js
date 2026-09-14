@@ -129,6 +129,37 @@ if (RENDER_EXTERNAL_URL) {
   }, 14 * 60 * 1000);
 }
 
+app.get('/repair-streak', async (req, res) => {
+  if (!db) return res.status(500).json({ error: 'Database not initialized' });
+  try {
+    const startDate = new Date('2026-08-15T00:00:00');
+    const today = new Date();
+    let count = 0;
+    for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+      const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const docRef = db.collection('dailyDrops').doc(dayStr);
+      const docSnap = await docRef.get();
+      let data = docSnap.exists ? docSnap.data() : {};
+      let updated = false;
+      const dummyDrop = {
+        message: "Streak restored! ❤️",
+        photo: null, 
+        timestamp: new Date().toISOString()
+      };
+      if (!data.parshwa) { data.parshwa = dummyDrop; updated = true; }
+      if (!data.diya) { data.diya = dummyDrop; updated = true; }
+      if (updated) {
+        await docRef.set(data, { merge: true });
+        count++;
+      }
+    }
+    res.status(200).json({ message: `Streak repaired successfully! Fixed ${count} days.` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
