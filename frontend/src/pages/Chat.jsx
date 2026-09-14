@@ -122,6 +122,26 @@ const Chat = () => {
 
   // --- JOIN AGORA CHANNEL ---
   const joinAgoraChannel = async (videoEnabled) => {
+    // Fetch dynamic token from backend
+    let token = null;
+    try {
+      const response = await fetch(`${BACKEND_URL}/rtcToken?channelName=${CHANNEL_NAME}&uid=${uid}`);
+      const data = await response.json();
+      if (data.token) {
+        token = data.token;
+      } else {
+        console.error("Token fetch failed:", data.error);
+        alert('Could not fetch call token. Error: ' + (data.error || 'Unknown error'));
+        handleEndCall();
+        return;
+      }
+    } catch (err) {
+      console.error("Error fetching token:", err);
+      alert('Network error fetching call token.');
+      handleEndCall();
+      return;
+    }
+
     agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
     // Remote user published (partner joined / published tracks)
@@ -151,7 +171,7 @@ const Chat = () => {
       cleanupCall();
     });
 
-    await agoraClient.join(AGORA_APP_ID, CHANNEL_NAME, null, uid);
+    await agoraClient.join(AGORA_APP_ID, CHANNEL_NAME, token, uid);
 
     // Publish local tracks
     if (videoEnabled) {
@@ -200,7 +220,7 @@ const Chat = () => {
 
     } catch (err) {
       console.error('Start call failed:', err);
-      alert('Could not start call. Please allow microphone/camera access.');
+      alert('Could not start call. Error: ' + (err.message || err));
       handleEndCall();
     }
   };
@@ -218,7 +238,7 @@ const Chat = () => {
 
     } catch (err) {
       console.error('Accept call failed:', err);
-      alert('Could not join call. Please allow microphone/camera access.');
+      alert('Could not join call. Error: ' + (err.message || err));
       handleEndCall();
     }
   };

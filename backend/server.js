@@ -4,6 +4,7 @@ const cors = require('cors');
 const webpush = require('web-push');
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
 
 const app = express();
 app.use(cors());
@@ -79,6 +80,43 @@ app.post('/notify', async (req, res) => {
 // Keep-Alive Endpoint
 app.get('/ping', (req, res) => {
   res.status(200).send('pong');
+});
+
+// Agora Token Generation Endpoint
+app.get('/rtcToken', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  
+  const channelName = req.query.channelName;
+  if (!channelName) {
+    return res.status(400).json({ error: 'channelName is required' });
+  }
+
+  let uid = req.query.uid;
+  if (!uid || uid === '') {
+    return res.status(400).json({ error: 'uid is required' });
+  }
+  // Convert uid to integer (Agora requires integer UIDs for their standard tokens)
+  uid = parseInt(uid, 10);
+
+  const role = RtcRole.PUBLISHER;
+  const expireTime = 3600; // 1 hour token validity
+  const currentTime = Math.floor(Date.now() / 1000);
+  const privilegeExpireTime = currentTime + expireTime;
+
+  const appID = process.env.AGORA_APP_ID;
+  const appCertificate = process.env.AGORA_APP_CERTIFICATE;
+
+  if (!appID || !appCertificate) {
+    return res.status(500).json({ error: 'Agora App ID and Certificate must be set in environment' });
+  }
+
+  try {
+    const token = RtcTokenBuilder.buildTokenWithUid(appID, appCertificate, channelName, uid, role, privilegeExpireTime);
+    return res.json({ token });
+  } catch (err) {
+    console.error("Error generating token:", err);
+    return res.status(500).json({ error: 'Failed to generate token' });
+  }
 });
 
 // Self-ping to prevent Render from sleeping (every 14 mins)
