@@ -45,25 +45,11 @@ const DailyDrop = () => {
       hist.sort((a, b) => b.id.localeCompare(a.id));
       hist = hist.slice(0, 30); // Keep max 30 past drops
 
-      // Calculate Streak
-      let currentStreak = 0;
-      let checkDate = new Date();
-      
-      if (todayDoc && todayDoc['parshwa'] && todayDoc['diya']) {
-        currentStreak += 1;
-      }
-      checkDate.setDate(checkDate.getDate() - 1);
-      
-      while (true) {
-        const histDayStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-        const histDoc = hist.find(h => h.id === histDayStr);
-        if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
-          currentStreak += 1;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
+      // Calculate Streak based on days since 15th Aug 2026
+      const startDate = new Date('2026-08-15T00:00:00');
+      const todayDate = new Date();
+      const diffTime = Math.abs(todayDate - startDate);
+      const currentStreak = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
 
       setStreak(currentStreak);
       setMyDrop(todayMyDrop);
