@@ -27,6 +27,7 @@ function urlBase64ToUint8Array(base64String) {
 
 const Profile = () => {
   const [pushStatus, setPushStatus] = useState('Enable Notifications');
+  const [pushStatusDetail, setPushStatusDetail] = useState('');
   const [role, setRole] = useState(localStorage.getItem('appRole') || null);
   const [isExporting, setIsExporting] = useState(false);
 
@@ -103,11 +104,32 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    if (Notification.permission === 'granted') {
-      setPushStatus('Enabled');
-    } else if (Notification.permission === 'denied') {
-      setPushStatus('Blocked by Browser');
-    }
+    const checkStatus = async () => {
+      if (Notification.permission === 'denied') {
+        setPushStatus('Blocked by Browser');
+        setPushStatusDetail('Go to browser settings to allow notifications.');
+      } else if (Notification.permission === 'granted') {
+        // Check if there's actually an active subscription
+        try {
+          const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+          const sub = reg ? await reg.pushManager.getSubscription() : null;
+          if (sub) {
+            setPushStatus('Enabled ✓');
+            setPushStatusDetail('Tap to re-subscribe if not receiving notifications.');
+          } else {
+            setPushStatus('Re-Subscribe');
+            setPushStatusDetail('Permission granted but no active subscription. Tap to fix.');
+          }
+        } catch {
+          setPushStatus('Re-Subscribe');
+          setPushStatusDetail('Subscription may be broken. Tap to fix.');
+        }
+      } else {
+        setPushStatus('Enable Notifications');
+        setPushStatusDetail('');
+      }
+    };
+    checkStatus();
   }, []);
 
   const handleRoleChange = (newRole) => {
@@ -121,27 +143,53 @@ const Profile = () => {
 
   const enableNotifications = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert("Push notifications are not supported in this browser.");
+      alert('Push notifications are not supported in this browser.');
+      return;
+    }
+    if (!role) {
+      alert('Please select your profile (Parshwa or Diya) first!');
+      return;
+    }
+    if (!PUBLIC_VAPID_KEY) {
+      alert('VAPID key not configured. Check environment variables.');
       return;
     }
 
     try {
-      setPushStatus('Registering...');
+      setPushStatus('Setting up...');
+      setPushStatusDetail('Please wait...');
+
+      // Step 1: Unregister ALL old service workers (cleans up broken calling SW, etc.)
+      const existingRegs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of existingRegs) {
+        // Unsubscribe existing push subscriptions first
+        const existingSub = await reg.pushManager.getSubscription().catch(() => null);
+        if (existingSub) await existingSub.unsubscribe().catch(() => {});
+        await reg.unregister();
+      }
+
+      // Step 2: Request permission
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setPushStatus('Permission Denied');
+        setPushStatusDetail('Allow notifications in your browser settings.');
         return;
       }
 
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // Step 3: Register the fresh service worker
+      const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
       
+      // Wait for service worker to be ready
+      await navigator.serviceWorker.ready;
+
+      // Step 4: Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
       });
 
-      // Send to Render Backend
-      await fetch(`${BACKEND_URL}/subscribe`, {
+      // Step 5: Send subscription to backend
+      const res = await fetch(`${BACKEND_URL}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -150,11 +198,41 @@ const Profile = () => {
         })
       });
 
-      setPushStatus('Enabled');
-      alert("Notifications successfully enabled!");
+      if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+
+      setPushStatus('Enabled ✓');
+      setPushStatusDetail('You will now receive nudges and updates!');
+      alert(`✅ Notifications enabled for ${role === 'parshwa' ? 'Parshwa' : 'Diya'}!`);
     } catch (err) {
-      console.error(err);
-      setPushStatus('Error (Try again)');
+      console.error('Notification setup failed:', err);
+      setPushStatus('Error — Tap to retry');
+      setPushStatusDetail(err.message || 'Something went wrong.');
+    }
+  };
+
+  const sendTestNudge = async () => {
+    if (!role) {
+      alert('Select your profile first!');
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderRole: role,
+          title: '🔔 Test Notification',
+          body: `This is a test from ${role === 'parshwa' ? 'Parshwa' : 'Diya'}. Notifications are working!`
+        })
+      });
+      if (res.ok) {
+        alert('✅ Test nudge sent to your partner!');
+      } else {
+        const err = await res.json();
+        alert(`❌ Failed: ${err.error}`);
+      }
+    } catch (err) {
+      alert(`❌ Error: ${err.message}`);
     }
   };
 
@@ -186,15 +264,23 @@ const Profile = () => {
         <h3 className="settings-title">App Settings</h3>
         
         <div className="settings-list">
-          <div className="setting-item">
-            <span className="setting-label">Push Notifications</span>
-            <button 
-              className="editorial-text-btn" 
-              onClick={enableNotifications}
-              disabled={pushStatus === 'Enabled'}
-            >
-              {pushStatus}
-            </button>
+          <div className="setting-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <span className="setting-label">Push Notifications</span>
+              <button 
+                className="editorial-text-btn" 
+                onClick={enableNotifications}
+                disabled={pushStatus === 'Setting up...'}
+                style={pushStatus.includes('✓') ? { color: 'var(--accent-neon)', borderColor: 'var(--accent-neon)' } : {}}
+              >
+                {pushStatus}
+              </button>
+            </div>
+            {pushStatusDetail && (
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-pearl)', opacity: 0.6, lineHeight: 1.4 }}>
+                {pushStatusDetail}
+              </span>
+            )}
           </div>
           <div className="setting-item">
             <span className="setting-label">Passcode Lock</span>
@@ -208,6 +294,16 @@ const Profile = () => {
               disabled={isExporting}
             >
               {isExporting ? 'Packaging...' : 'Download ZIP'}
+            </button>
+          </div>
+          <div className="setting-item">
+            <span className="setting-label">Test Notifications</span>
+            <button 
+              className="editorial-text-btn" 
+              onClick={sendTestNudge}
+              title="Send a test push notification to your partner"
+            >
+              Send Test Nudge
             </button>
           </div>
         </div>
