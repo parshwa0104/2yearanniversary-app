@@ -30,12 +30,24 @@ export const checkAndAwardHeart = async (role) => {
       const awardKey = `${role}_${todayStrDrop}`;
       if (!data.awarded || !data.awarded[awardKey]) {
         const newHearts = (data.hearts || 0) + 1;
+
+        // Prune awarded keys older than 7 days to keep the document small
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        const cutoffStr = cutoff.toLocaleDateString('en-CA');
+        const pruned = {};
+        for (const [key, val] of Object.entries(data.awarded || {})) {
+          // Key format: "role_YYYY-MM-DD" — extract date part
+          const datePart = key.split('_').slice(1).join('_');
+          if (datePart >= cutoffStr) {
+            pruned[key] = val;
+          }
+        }
+        pruned[awardKey] = true;
+
         await setDoc(statsRef, {
           hearts: newHearts,
-          awarded: {
-            ...(data.awarded || {}),
-            [awardKey]: true
-          }
+          awarded: pruned
         }, { merge: true });
         return true; // Awarded!
       }
