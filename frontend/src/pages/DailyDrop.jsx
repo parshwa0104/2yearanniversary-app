@@ -46,6 +46,27 @@ const DailyDrop = () => {
       hist = hist.slice(0, 30); // Keep max 30 past drops
 
       // Calculate Streak based on days since 15th Aug 2026
+      /* 
+      // Original Streak Calculation (Consecutive Days both posted):
+      let currentStreak = 0;
+      let checkDate = new Date();
+      
+      if (todayDoc && todayDoc['parshwa'] && todayDoc['diya']) {
+        currentStreak += 1;
+      }
+      checkDate.setDate(checkDate.getDate() - 1);
+      
+      while (true) {
+        const histDayStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        const histDoc = hist.find(h => h.id === histDayStr);
+        if (histDoc && histDoc['parshwa'] && histDoc['diya']) {
+          currentStreak += 1;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      */
       const startDate = new Date('2026-08-15T00:00:00');
       const todayDate = new Date();
       const diffTime = Math.abs(todayDate - startDate);
