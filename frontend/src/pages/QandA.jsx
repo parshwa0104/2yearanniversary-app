@@ -13,7 +13,7 @@ const QandA = () => {
 
   // Calculate question of the day based on date
   const today = new Date();
-  const startDate = new Date('2024-08-15T00:00:00');
+  const startDate = new Date('2026-08-15T00:00:00');
   const diffDays = Math.floor(Math.abs(today - startDate) / (1000 * 60 * 60 * 24));
   const currentQIndex = diffDays % questions.length;
   
@@ -244,7 +244,7 @@ const QandA = () => {
           <div className="signature-letter" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '32px', background: 'var(--bg-deep)', borderRadius: '16px', border: '1px solid var(--border-plum)', maxWidth: '300px' }}>
             <h3 style={{ color: 'var(--text-blush)', marginBottom: '16px', fontFamily: 'var(--font-display)' }}>Restore Streak?</h3>
             <p style={{ color: 'var(--text-pearl)', marginBottom: '24px', fontSize: '0.95rem' }}>
-              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak since Aug 15, 2024.
+              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak since Aug 15, 2026.
             </p>
             {hearts >= missingDaysCount ? (
               <button 

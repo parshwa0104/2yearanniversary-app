@@ -6,7 +6,7 @@ export const checkAndAwardHeart = async (role) => {
   try {
     const todayStrDrop = new Date().toLocaleDateString('en-CA');
     const todayDate = new Date();
-    const startDateQ = new Date('2024-08-15T00:00:00');
+    const startDateQ = new Date('2026-08-15T00:00:00');
     
     // Check Daily Drop
     const dropDoc = await getDoc(doc(db, 'dailyDrops', todayStrDrop));
