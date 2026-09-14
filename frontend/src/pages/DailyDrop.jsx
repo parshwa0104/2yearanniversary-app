@@ -17,8 +17,25 @@ const DailyDrop = () => {
 
   const [history, setHistory] = useState([]);
   const [streak, setStreak] = useState(0);
+  const [hearts, setHearts] = useState(0);
+  const [missingDaysCount, setMissingDaysCount] = useState(0);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "appData", "stats"), (docSnap) => {
+      if (docSnap.exists()) {
+        setHearts(docSnap.data().hearts || 0);
+      } else {
+        setDoc(doc(db, "appData", "stats"), { hearts: 10 }, { merge: true });
+        setHearts(10);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     // Simplify query to avoid any Firebase index or orderBy crashes
@@ -40,6 +57,21 @@ const DailyDrop = () => {
           hist.push({ id: docSnap.id, ...data });
         }
       });
+
+      // Calculate missing days up to yesterday
+      let missingCount = 0;
+      const startDate = new Date('2026-08-15T00:00:00');
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+        const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const histDoc = hist.find(h => h.id === dayStr);
+        if (!histDoc || !histDoc['parshwa'] || !histDoc['diya']) {
+          missingCount++;
+        }
+      }
+      setMissingDaysCount(missingCount);
 
       // Sort history descending by date string
       hist.sort((a, b) => b.id.localeCompare(a.id));
@@ -72,6 +104,47 @@ const DailyDrop = () => {
     });
     return () => unsub();
   }, []);
+
+  const handleRestoreStreak = async () => {
+    if (hearts < missingDaysCount) return;
+    setIsRestoring(true);
+    try {
+      await setDoc(doc(db, "appData", "stats"), { hearts: hearts - missingDaysCount }, { merge: true });
+      
+      const startDate = new Date('2026-08-15T00:00:00');
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      for (let d = new Date(startDate); d <= yesterday; d.setDate(d.getDate() + 1)) {
+        const dayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const docRef = doc(db, 'dailyDrops', dayStr);
+        
+        // We use history to see what was missing without extra reads
+        const histDoc = history.find(h => h.id === dayStr);
+        let updated = false;
+        const data = histDoc || {};
+        
+        const dummyDrop = {
+          message: "Streak restored! ❤️",
+          photo: null, 
+          timestamp: new Date().toISOString()
+        };
+        
+        if (!data.parshwa) { data.parshwa = dummyDrop; updated = true; }
+        if (!data.diya) { data.diya = dummyDrop; updated = true; }
+        
+        if (updated) {
+          // Remove the id property if it got copied from history
+          delete data.id;
+          await setDoc(docRef, data, { merge: true });
+        }
+      }
+      setShowRestoreModal(false);
+    } catch (e) {
+      console.error(e);
+    }
+    setIsRestoring(false);
+  };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -154,8 +227,23 @@ const DailyDrop = () => {
   return (
     <div className="daily-drop-section animate-fade-in">
       <div className="editorial-header">
-        <h2 className="section-title">Share a moment</h2>
-        <span className="editorial-meta">{streak} {streak === 1 ? 'Day' : 'Days'} Streak</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+          <h2 className="section-title" style={{ margin: 0 }}>Share a moment</h2>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span className="editorial-meta" style={{ color: 'var(--text-blush)' }}>❤️ {hearts}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <span className="editorial-meta">{streak} {streak === 1 ? 'Day' : 'Days'} Streak</span>
+              {missingDaysCount > 0 && (
+                <button 
+                  onClick={() => setShowRestoreModal(true)}
+                  style={{ background: 'rgba(255,126,179,0.1)', color: 'var(--text-blush)', border: '1px solid var(--border-plum)', padding: '4px 8px', borderRadius: '8px', fontSize: '0.75rem', cursor: 'pointer', marginTop: '4px' }}
+                >
+                  Restore ({missingDaysCount} ❤️)
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {!myDrop ? (
@@ -258,6 +346,35 @@ const DailyDrop = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {showRestoreModal && (
+        <div className="signature-modal-overlay" onClick={() => setShowRestoreModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div className="signature-letter" onClick={e => e.stopPropagation()} style={{ textAlign: 'center', padding: '32px', background: 'var(--bg-deep)', borderRadius: '16px', border: '1px solid var(--border-plum)', maxWidth: '300px' }}>
+            <h3 style={{ color: 'var(--text-blush)', marginBottom: '16px', fontFamily: 'var(--font-display)' }}>Restore Streak?</h3>
+            <p style={{ color: 'var(--text-pearl)', marginBottom: '24px', fontSize: '0.95rem' }}>
+              You missed {missingDaysCount} {missingDaysCount === 1 ? 'day' : 'days'}. It will cost {missingDaysCount} ❤️ to restore your perfect streak since Aug 15, 2026.
+            </p>
+            {hearts >= missingDaysCount ? (
+              <button 
+                className="editorial-text-btn" 
+                onClick={handleRestoreStreak}
+                disabled={isRestoring}
+                style={{ width: '100%' }}
+              >
+                {isRestoring ? 'Restoring...' : `Spend ${missingDaysCount} ❤️`}
+              </button>
+            ) : (
+              <p style={{ color: '#ff3b30' }}>You don't have enough Hearts!</p>
+            )}
+            <button 
+              onClick={() => setShowRestoreModal(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-pearl)', marginTop: '16px', fontSize: '0.85rem', cursor: 'pointer', opacity: 0.7 }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
