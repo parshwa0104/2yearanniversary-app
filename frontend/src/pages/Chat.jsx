@@ -1,79 +1,52 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Phone, Video, Send, PhoneOff, Mic, MicOff, Video as VideoIcon, VideoOff, PhoneCall, Check, CheckCheck } from 'lucide-react';
-import { collection, doc, addDoc, onSnapshot, query, orderBy, setDoc, deleteDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, onSnapshot, query, orderBy, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import AgoraRTC from 'agora-rtc-sdk-ng';
 import './Chat.css';
 
-const configuration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:global.stun.twilio.com:3478' },
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ]
-};
+const AGORA_APP_ID = '822b1425eaf8493b8758347766f08469';
+const CHANNEL_NAME = 'parshwa-diya-love';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
+// Agora client (module-level singleton)
+let agoraClient = null;
 
 const Chat = () => {
   const navigate = useNavigate();
   const role = localStorage.getItem('appRole') || 'parshwa';
   const partnerRole = role === 'parshwa' ? 'diya' : 'parshwa';
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const partnerName = partnerRole === 'parshwa' ? 'Parshwa' : 'Diya';
+  const myName = role === 'parshwa' ? 'Parshwa' : 'Diya';
+  const uid = role === 'parshwa' ? 1 : 2;
 
   // --- CHAT STATE ---
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const messagesEndRef = useRef(null);
 
-  // --- WEBRTC STATE ---
-  const [callState, setCallState] = useState(null); // 'ringing', 'incoming', 'connected'
+  // --- CALL STATE ---
+  const [callState, setCallState] = useState(null); // null | 'ringing' | 'incoming' | 'connected'
   const [isVideo, setIsVideo] = useState(false);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const pc = useRef(null);
-  const callDocData = useRef(null); // Store latest call doc data for ICE callbacks
-  const processedCandidates = useRef(new Set());
+  const [remoteHasVideo, setRemoteHasVideo] = useState(false);
 
-  // Scroll to bottom of chat
+  const localTracksRef = useRef([]); // [micTrack] or [micTrack, cameraTrack]
+  const callStateRef = useRef(null); // shadow ref for use inside Agora callbacks
+
+  // Keep ref in sync
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
+
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
-  // Sync Video Refs
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-      localVideoRef.current.play().catch(e => console.error("Local play err:", e));
-    }
-  }, [localStream, callState]);
-
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch(e => console.error("Remote play err:", e));
-    }
-  }, [remoteStream, callState]);
-
-  // Load Messages
+  // Load messages
   useEffect(() => {
     const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
     const unsub = onSnapshot(q, (snapshot) => {
@@ -82,7 +55,7 @@ const Chat = () => {
     return () => unsub();
   }, []);
 
-  // Mark incoming messages as read
+  // Mark messages as read
   useEffect(() => {
     messages.forEach(msg => {
       if (msg.sender !== role && !msg.read) {
@@ -91,53 +64,37 @@ const Chat = () => {
     });
   }, [messages, role]);
 
-  // Listen to Call Doc
+  // Listen to call signaling doc
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'calls', 'primary'), async (snapshot) => {
+    const unsub = onSnapshot(doc(db, 'calls', 'primary'), (snapshot) => {
       const data = snapshot.data();
-      callDocData.current = data;
 
       if (!data) {
-        // Call ended
-        if (callState) handleCleanup();
+        // Call was ended/deleted by partner
+        if (callStateRef.current) cleanupCall();
         return;
       }
 
-      // 1. INCOMING CALL
-      if (data.offer && data.caller !== role && !data.answer && callState !== 'incoming' && callState !== 'connected') {
+      // Show incoming call to the callee
+      if (data.status === 'ringing' && data.callee === role && callStateRef.current !== 'incoming' && callStateRef.current !== 'connected') {
         setCallState('incoming');
         setIsVideo(data.video);
       }
 
-      // 2. CALLER RECEIVES ANSWER
-      if (data.answer && data.caller === role && pc.current && pc.current.signalingState !== 'stable') {
-        try {
-          const rtcSessionDescription = new RTCSessionDescription(data.answer);
-          await pc.current.setRemoteDescription(rtcSessionDescription);
-          setCallState('connected');
-        } catch (err) {
-          console.error("Error setting remote description:", err);
-        }
-      }
-
-      // 3. ICE CANDIDATES SYNC
-      if (pc.current && pc.current.remoteDescription) {
-        // If I am caller, I read calleeCandidates. If I am callee, I read callerCandidates.
-        const candidates = data.caller === role ? (data.calleeCandidates || []) : (data.callerCandidates || []);
-        
-        candidates.forEach(async (candidateData) => {
-          if (!processedCandidates.current.has(candidateData.candidate)) {
-            processedCandidates.current.add(candidateData.candidate);
-            try {
-              const candidate = new RTCIceCandidate(candidateData);
-              await pc.current.addIceCandidate(candidate);
-            } catch (err) {}
-          }
-        });
+      // Partner rejected/ended
+      if (data.status === 'ended') {
+        cleanupCall();
       }
     });
     return () => unsub();
-  }, [role, callState]);
+  }, [role]);
+
+  // Cleanup Agora on unmount
+  useEffect(() => {
+    return () => {
+      cleanupCall();
+    };
+  }, []);
 
   // --- SEND MESSAGE ---
   const handleSendMessage = async (e) => {
@@ -145,192 +102,216 @@ const Chat = () => {
     if (!text.trim()) return;
     const msg = text;
     setText('');
-    
+
     await addDoc(collection(db, 'messages'), {
       text: msg,
       sender: role,
       timestamp: serverTimestamp()
     });
 
-    // Notify partner
     fetch(`${BACKEND_URL}/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         senderRole: role,
-        title: `New Message from ${role === 'parshwa' ? 'Parshwa' : 'Diya'}`,
+        title: `💬 ${myName}`,
         body: msg
       })
-    }).catch(e => console.error("Notify failed:", e));
+    }).catch(() => {});
   };
 
-  // --- WEBRTC SETUP ---
-  const setupMediaAndPC = async (videoEnabled, isCaller) => {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: videoEnabled, audio: true });
-    setLocalStream(stream);
+  // --- JOIN AGORA CHANNEL ---
+  const joinAgoraChannel = async (videoEnabled) => {
+    agoraClient = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
-    pc.current = new RTCPeerConnection(configuration);
+    // Remote user published (partner joined / published tracks)
+    agoraClient.on('user-published', async (user, mediaType) => {
+      await agoraClient.subscribe(user, mediaType);
 
-    stream.getTracks().forEach(track => {
-      pc.current.addTrack(track, stream);
+      if (mediaType === 'video') {
+        setRemoteHasVideo(true);
+        setCallState('connected');
+        // Play into the remote-video div
+        setTimeout(() => {
+          user.videoTrack?.play('agora-remote-video');
+        }, 100);
+      }
+      if (mediaType === 'audio') {
+        user.audioTrack?.play();
+        setCallState('connected');
+      }
     });
 
-    pc.current.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
-    };
+    agoraClient.on('user-unpublished', (user, mediaType) => {
+      if (mediaType === 'video') setRemoteHasVideo(false);
+    });
 
-    pc.current.onicecandidate = (event) => {
-      if (event.candidate) {
-        const field = isCaller ? 'callerCandidates' : 'calleeCandidates';
-        setDoc(doc(db, 'calls', 'primary'), {
-          [field]: arrayUnion(event.candidate.toJSON())
-        }, { merge: true }).catch(e => console.error("Error adding ice candidate:", e));
-      }
-    };
+    agoraClient.on('user-left', () => {
+      // Partner left the channel = call ended
+      cleanupCall();
+    });
+
+    await agoraClient.join(AGORA_APP_ID, CHANNEL_NAME, null, uid);
+
+    // Publish local tracks
+    if (videoEnabled) {
+      const [micTrack, cameraTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+      localTracksRef.current = [micTrack, cameraTrack];
+      await agoraClient.publish([micTrack, cameraTrack]);
+      // Play local camera preview
+      setTimeout(() => {
+        cameraTrack.play('agora-local-video');
+      }, 100);
+    } else {
+      const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      localTracksRef.current = [micTrack];
+      await agoraClient.publish([micTrack]);
+    }
   };
 
-  const handleStartCall = async (useVideo) => {
-    setIsVideo(useVideo);
-    setCallState('ringing');
-    
+  // --- START CALL (initiator) ---
+  const handleStartCall = async (videoEnabled) => {
     try {
-      await setupMediaAndPC(useVideo, true);
+      setIsVideo(videoEnabled);
+      setCallState('ringing');
 
-      // Safari Transceiver Fix: Explicitly ask to receive audio and video
-      const offer = await pc.current.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
-      });
-      
-      const callData = {
+      // Write signaling doc
+      await setDoc(doc(db, 'calls', 'primary'), {
         caller: role,
-        video: useVideo,
-        offer: { type: offer.type, sdp: offer.sdp },
-      };
-      await setDoc(doc(db, 'calls', 'primary'), callData);
-      
-      await pc.current.setLocalDescription(offer);
+        callee: partnerRole,
+        video: videoEnabled,
+        status: 'ringing',
+        createdAt: serverTimestamp()
+      });
 
-      // Notify partner
+      // Join Agora — wait in channel for partner
+      await joinAgoraChannel(videoEnabled);
+
+      // Push notification to partner
       fetch(`${BACKEND_URL}/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderRole: role,
-          title: "Incoming Call 📞",
-          body: `${role === 'parshwa' ? 'Parshwa' : 'Diya'} is calling you!`
+          title: videoEnabled ? '📹 Incoming Video Call' : '📞 Incoming Call',
+          body: `${myName} is calling you! Open the app to answer.`
         })
-      }).catch(e => console.error("Notify failed:", e));
+      }).catch(() => {});
 
     } catch (err) {
-      console.error(err);
-      handleCleanup();
-      alert("Failed to start call. Please check microphone/camera permissions.");
+      console.error('Start call failed:', err);
+      alert('Could not start call. Please allow microphone/camera access.');
+      handleEndCall();
     }
   };
 
+  // --- ACCEPT CALL (callee) ---
   const handleAcceptCall = async () => {
-    setCallState('connected');
-    const data = callDocData.current;
-    
     try {
-      await setupMediaAndPC(data.video, false);
+      setCallState('connected');
 
-      const rtcSessionDescription = new RTCSessionDescription(data.offer);
-      await pc.current.setRemoteDescription(rtcSessionDescription);
+      // Update signaling doc
+      await updateDoc(doc(db, 'calls', 'primary'), { status: 'accepted' });
 
-      const answer = await pc.current.createAnswer();
-      await pc.current.setLocalDescription(answer);
+      // Join Agora
+      await joinAgoraChannel(isVideo);
 
-      await updateDoc(doc(db, 'calls', 'primary'), {
-        answer: { type: answer.type, sdp: answer.sdp }
-      });
-
-      // Process any ICE candidates that arrived before the call was accepted
-      if (data.callerCandidates) {
-        data.callerCandidates.forEach(async (candidateData) => {
-          if (!processedCandidates.current.has(candidateData.candidate)) {
-            processedCandidates.current.add(candidateData.candidate);
-            try {
-              await pc.current.addIceCandidate(new RTCIceCandidate(candidateData));
-            } catch (err) {}
-          }
-        });
-      }
     } catch (err) {
-      console.error(err);
-      handleCleanup();
+      console.error('Accept call failed:', err);
+      alert('Could not join call. Please allow microphone/camera access.');
+      handleEndCall();
     }
   };
 
+  // --- END / REJECT CALL ---
   const handleEndCall = async () => {
-    await deleteDoc(doc(db, 'calls', 'primary'));
-    handleCleanup();
+    await setDoc(doc(db, 'calls', 'primary'), { status: 'ended' }, { merge: true })
+      .catch(() => {});
+    setTimeout(() => deleteDoc(doc(db, 'calls', 'primary')).catch(() => {}), 500);
+    cleanupCall();
   };
 
-  const handleCleanup = () => {
-    if (pc.current) {
-      pc.current.close();
-      pc.current = null;
+  // --- CLEANUP ---
+  const cleanupCall = async () => {
+    // Stop local tracks
+    localTracksRef.current.forEach(track => {
+      try { track.stop(); track.close(); } catch {}
+    });
+    localTracksRef.current = [];
+
+    // Leave Agora channel
+    if (agoraClient) {
+      try { await agoraClient.leave(); } catch {}
+      agoraClient = null;
     }
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    setLocalStream(null);
-    setRemoteStream(null);
+
     setCallState(null);
+    setIsVideo(false);
     setIsMuted(false);
     setIsVideoOff(false);
-    processedCandidates.current.clear();
+    setRemoteHasVideo(false);
   };
 
-  const toggleMute = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
+  // --- TOGGLE MIC ---
+  const toggleMute = async () => {
+    const micTrack = localTracksRef.current[0];
+    if (micTrack) {
+      await micTrack.setEnabled(isMuted);
+      setIsMuted(!isMuted);
     }
   };
 
-  const toggleVideo = () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-      }
+  // --- TOGGLE CAMERA ---
+  const toggleVideo = async () => {
+    const cameraTrack = localTracksRef.current[1];
+    if (cameraTrack) {
+      await cameraTrack.setEnabled(isVideoOff);
+      setIsVideoOff(!isVideoOff);
     }
   };
 
   // --- RENDER ---
   return (
     <div className="chat-container">
+      {/* ── Header ── */}
       <div className="chat-header">
         <div className="chat-title">
           <button className="back-btn" onClick={() => navigate(-1)}>
             <ArrowLeft size={24} />
           </button>
-          <h2 className="chat-name">{partnerRole}</h2>
+          <div className="chat-partner-info">
+            <div className="chat-partner-avatar">{partnerName[0]}</div>
+            <h2 className="chat-name">{partnerName}</h2>
+          </div>
         </div>
         <div className="chat-actions">
-          <button className="call-btn" onClick={() => handleStartCall(false)}><Phone size={22} /></button>
-          <button className="call-btn" onClick={() => handleStartCall(true)}><Video size={24} /></button>
+          <button className="call-btn" onClick={() => handleStartCall(false)} title="Voice Call">
+            <Phone size={20} />
+          </button>
+          <button className="call-btn" onClick={() => handleStartCall(true)} title="Video Call">
+            <Video size={22} />
+          </button>
         </div>
       </div>
 
+      {/* ── Messages ── */}
       <div className="messages-area">
+        {messages.length === 0 && (
+          <div className="empty-chat">
+            <span>💌</span>
+            <p>Say something sweet...</p>
+          </div>
+        )}
         {messages.map(msg => (
           <div key={msg.id} className={`message ${msg.sender === role ? 'mine' : 'theirs'}`}>
             <span className="message-text">{msg.text}</span>
-            <div className="message-meta" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', marginTop: '4px', opacity: 0.7, fontSize: '0.75rem' }}>
+            <div className="message-meta">
               <span className="message-time">
                 {msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
               </span>
               {msg.sender === role && (
                 <span className="read-receipt">
-                  {msg.read ? <CheckCheck size={14} color="var(--accent-neon)" /> : <Check size={14} />}
+                  {msg.read ? <CheckCheck size={13} color="var(--accent-neon)" /> : <Check size={13} />}
                 </span>
               )}
             </div>
@@ -339,9 +320,10 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* ── Input ── */}
       <form className="chat-input-area" onSubmit={handleSendMessage}>
-        <input 
-          type="text" 
+        <input
+          type="text"
           className="chat-input"
           placeholder="Type a message..."
           value={text}
@@ -352,53 +334,90 @@ const Chat = () => {
         </button>
       </form>
 
-      {/* CALL OVERLAY */}
+      {/* ── Call Overlay ── */}
       {callState && (
         <div className="call-overlay animate-fade-in">
-          <div className="call-header">
-            <h2>{partnerRole.toUpperCase()}</h2>
-            <div className="call-status">
-              {callState === 'ringing' && 'Calling...'}
-              {callState === 'incoming' && 'Incoming Call...'}
-              {callState === 'connected' && 'Connected'}
+
+          {/* Incoming call screen */}
+          {callState === 'incoming' && (
+            <div className="incoming-call-screen">
+              <div className="incoming-avatar-ring">
+                <div className="incoming-ring r1" />
+                <div className="incoming-ring r2" />
+                <div className="incoming-ring r3" />
+                <div className="incoming-avatar">{partnerName[0]}</div>
+              </div>
+              <h2 className="incoming-name">{partnerName}</h2>
+              <p className="incoming-label">
+                {isVideo ? '📹 Incoming video call' : '📞 Incoming voice call'}
+              </p>
+              <div className="incoming-actions">
+                <div className="incoming-action-wrap">
+                  <button className="ctrl-btn reject" onClick={handleEndCall}>
+                    <PhoneOff size={26} />
+                  </button>
+                  <span>Decline</span>
+                </div>
+                <div className="incoming-action-wrap">
+                  <button className="ctrl-btn accept" onClick={handleAcceptCall}>
+                    <PhoneCall size={26} />
+                  </button>
+                  <span>Accept</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="video-container">
-            {isVideo && (
-              <>
-                <video ref={remoteVideoRef} className="remote-video" autoPlay playsInline />
-                <video ref={localVideoRef} className="local-video" autoPlay playsInline muted />
-              </>
-            )}
-          </div>
+          {/* Ringing / Connected screen */}
+          {(callState === 'ringing' || callState === 'connected') && (
+            <>
+              {/* Remote video (fills screen) */}
+              {isVideo && (
+                <div
+                  id="agora-remote-video"
+                  className="agora-remote-video"
+                  style={{ background: remoteHasVideo ? '#000' : '#0d0d0d' }}
+                />
+              )}
 
-          <div className="call-controls">
-            {callState === 'incoming' ? (
-              <>
-                <button className="control-btn end-call" onClick={handleEndCall}>
-                  <PhoneOff size={28} />
+              {/* Audio-only or waiting: show avatar */}
+              {(!isVideo || !remoteHasVideo) && (
+                <div className="call-waiting-center">
+                  <div className={`call-avatar-pulse ${callState === 'ringing' ? 'pulsing' : ''}`}>
+                    <div className="pulse-ring pr1" />
+                    <div className="pulse-ring pr2" />
+                    <div className="call-avatar-inner">{partnerName[0]}</div>
+                  </div>
+                  <h2 className="call-partner-name">{partnerName}</h2>
+                  <p className="call-status-label">
+                    {callState === 'ringing' ? 'Calling...' : 'Connected'}
+                  </p>
+                </div>
+              )}
+
+              {/* Local video PiP */}
+              {isVideo && (
+                <div id="agora-local-video" className="agora-local-video" />
+              )}
+
+              {/* Controls */}
+              <div className="call-controls">
+                <button className={`ctrl-btn ${isMuted ? 'off' : ''}`} onClick={toggleMute} title={isMuted ? 'Unmute' : 'Mute'}>
+                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
                 </button>
-                <button className="control-btn accept-call" onClick={handleAcceptCall}>
-                  <PhoneCall size={28} />
-                </button>
-              </>
-            ) : (
-              <>
-                <button className={`control-btn ${isMuted ? 'off' : ''}`} onClick={toggleMute}>
-                  {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                </button>
+
                 {isVideo && (
-                  <button className={`control-btn ${isVideoOff ? 'off' : ''}`} onClick={toggleVideo}>
-                    {isVideoOff ? <VideoOff size={24} /> : <VideoIcon size={24} />}
+                  <button className={`ctrl-btn ${isVideoOff ? 'off' : ''}`} onClick={toggleVideo} title={isVideoOff ? 'Turn camera on' : 'Turn camera off'}>
+                    {isVideoOff ? <VideoOff size={22} /> : <VideoIcon size={22} />}
                   </button>
                 )}
-                <button className="control-btn end-call" onClick={handleEndCall}>
-                  <PhoneOff size={28} />
+
+                <button className="ctrl-btn end-call" onClick={handleEndCall} title="End call">
+                  <PhoneOff size={24} />
                 </button>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
