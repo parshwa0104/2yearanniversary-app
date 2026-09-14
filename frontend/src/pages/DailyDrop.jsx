@@ -45,9 +45,7 @@ const DailyDrop = () => {
       hist.sort((a, b) => b.id.localeCompare(a.id));
       hist = hist.slice(0, 30); // Keep max 30 past drops
 
-      // Calculate Streak based on days since 15th Aug 2026
-      /* 
-      // Original Streak Calculation (Consecutive Days both posted):
+      // Calculate Streak (Consecutive Days both posted):
       let currentStreak = 0;
       let checkDate = new Date();
       
@@ -66,11 +64,6 @@ const DailyDrop = () => {
           break;
         }
       }
-      */
-      const startDate = new Date('2026-08-15T00:00:00');
-      const todayDate = new Date();
-      const diffTime = Math.abs(todayDate - startDate);
-      const currentStreak = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
 
       setStreak(currentStreak);
       setMyDrop(todayMyDrop);
