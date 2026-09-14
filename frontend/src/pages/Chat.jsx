@@ -180,7 +180,7 @@ const Chat = () => {
       await agoraClient.publish([micTrack, cameraTrack]);
       // Play local camera preview
       setTimeout(() => {
-        cameraTrack.play('agora-local-video');
+        cameraTrack.play('agora-local-video', { mirror: false });
       }, 100);
     } else {
       const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
