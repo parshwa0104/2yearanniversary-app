@@ -29,7 +29,14 @@ export const checkAndAwardHeart = async (role) => {
       
       const awardKey = `${role}_${todayStrDrop}`;
       if (!data.awarded || !data.awarded[awardKey]) {
-        const newHearts = (data.hearts || 0) + 1;
+        const otherRole = role === 'parshwa' ? 'diya' : 'parshwa';
+        const otherAwardKey = `${otherRole}_${todayStrDrop}`;
+        
+        // If the other person hasn't been awarded yet for today, this person is the first.
+        const isFirst = !data.awarded || !data.awarded[otherAwardKey];
+        const heartsToAdd = isFirst ? 2 : 1;
+        
+        const newHearts = (data.hearts || 0) + heartsToAdd;
 
         // Prune awarded keys older than 7 days to keep the document small
         const cutoff = new Date();
@@ -49,12 +56,12 @@ export const checkAndAwardHeart = async (role) => {
           hearts: newHearts,
           awarded: pruned
         }, { merge: true });
-        return true; // Awarded!
+        return heartsToAdd; // Return the number of hearts awarded
       }
     }
-    return false;
+    return 0;
   } catch (err) {
     console.error("Error awarding heart:", err);
-    return false;
+    return 0;
   }
 };

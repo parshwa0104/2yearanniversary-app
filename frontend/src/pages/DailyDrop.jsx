@@ -223,8 +223,8 @@ const DailyDrop = () => {
       // Check and award heart
       const { checkAndAwardHeart } = await import('../utils/heartAward');
       const awarded = await checkAndAwardHeart(role);
-      if (awarded) {
-        alert("❤️ +1 Heart! Thank you for remembering our love today.");
+      if (awarded > 0) {
+        alert(`❤️ +${awarded} Heart${awarded > 1 ? 's' : ''}! Thank you for remembering our love today.`);
       }
 
       // Trigger Web Push Notification
