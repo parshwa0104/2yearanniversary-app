@@ -5,6 +5,7 @@ const webpush = require('web-push');
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { RtcTokenBuilder, RtcRole } = require('agora-access-token');
+const cron = require('node-cron');
 
 const app = express();
 app.use(cors());
@@ -158,6 +159,47 @@ app.get('/repair-streak', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Schedule daily reminder at 8:00 PM IST
+cron.schedule('0 20 * * *', async () => {
+  if (!db) return;
+  console.log('Running daily drop reminder check...');
+  try {
+    const now = new Date();
+    // Adjust to IST (UTC +5:30)
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    const todayStr = `${istTime.getUTCFullYear()}-${String(istTime.getUTCMonth() + 1).padStart(2, '0')}-${String(istTime.getUTCDate()).padStart(2, '0')}`;
+
+    const docSnap = await db.collection('dailyDrops').doc(todayStr).get();
+    const data = docSnap.exists ? docSnap.data() : {};
+
+    const roles = ['parshwa', 'diya'];
+    for (const role of roles) {
+      if (!data[role] || !data[role].photo) {
+        // User hasn't completed their daily drop
+        const subDoc = await db.collection('subscriptions').doc(role).get();
+        if (subDoc.exists) {
+          const subscription = subDoc.data().subscription;
+          const payload = JSON.stringify({
+            title: "Daily Drop Reminder! 📸",
+            body: "Don't forget to send your picture and answer today's questions!"
+          });
+          try {
+            await webpush.sendNotification(subscription, payload);
+            console.log(`Sent reminder to ${role}`);
+          } catch (err) {
+            console.error(`Failed to send reminder to ${role}:`, err);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error in daily drop reminder cron:', err);
+  }
+}, {
+  timezone: "Asia/Kolkata"
 });
 
 const PORT = process.env.PORT || 5000;
