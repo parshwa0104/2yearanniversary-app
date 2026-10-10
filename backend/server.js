@@ -83,6 +83,11 @@ app.get('/ping', (req, res) => {
   res.status(200).send('pong');
 });
 
+// Health Check Endpoint for external cron services
+app.get('/api/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // Agora Token Generation Endpoint
 app.get('/rtcToken', (req, res) => {
   res.header('Access-Control-Allow-Origin', '*');
